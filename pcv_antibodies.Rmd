@@ -1,0 +1,66 @@
+---
+title: "PCV antibodies"
+author: "Dan Weinberger"
+date: "9/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(reshape2)
+```
+
+```{r}
+pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
+d1 <- read_excel("./Data/IgGGMCs.xlsx")
+names(d1)[1] <- 'vax'
+d1$timepoint_dose_weeks <- NULL
+d1.m <- melt(d1, id.vars=c('vax','Dose','Trial'))
+d1.m$variable <- gsub('serotype', '', d1.m$variable)
+d1.m <- d1.m[d1.m$variable %in% pcv7sts ,]
+d1.c <- acast(d1.m, vax~Dose~Trial+variable)
+
+boost <- as.data.frame(t(d1.c[,'Booster',]))
+```
+
+```{r}
+plot(boost$PCV7, boost$PCV13, bty='l')
+abline(a=0, b=1)
+```
+
+```{r}
+
+```
+
+
+#PCV7 13 ratio
+```{r}
+ratio <- boost$PCV13/boost$PCV7
+study <- gsub( "_.*$", "", rownames(boost) )
+st <- gsub( ".*_", "", rownames(boost) )
+
+plot.df <- cbind.data.frame(ratio, study, st)
+
+plot(as.numeric(as.factor(plot.df$st)), plot.df$ratio, xaxt='n', bty='l', ylab='Boost Ab Ratio')
+axis (side=1, at=c(1:length(unique(plot.df$st))), labels=unique(plot.df$st) )
+abline(h=1, lty=2)
+
+```
+
+
+
+
+```{r}
+d1.m.boost <- d1.m[d1.m$Dose=='Booster',]
+d1.c.alt <- dcast(d1.m.boost, vax~Trial+variable)
+
+d1.c.alt$vax.d <- 0
+d1.c.alt$vax.d[d1.c.alt$vax=='PCV13'] <- 1
+d1.c.alt <- d1.c.alt[c(2,1),]
+
+matplot(log(d1.c.alt[,-1]), type='l', col=rgb(0,0,0,alpha=0.1), lty=1)
+
+```
+
+
