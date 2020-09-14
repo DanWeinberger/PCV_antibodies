@@ -41,31 +41,33 @@ ST23F 0.63
 post.prim <- as.data.frame(t(d1.c[,'3rddoseP',]))
 post.prim <- post.prim[!is.na(post.prim$PCV7) & !is.na(post.prim$PCV13),]
 
-plot(post.prim$PCV7, post.prim$PCV13, bty='l')
-abline(a=0, b=1)
-```
-
-
-```{r}
+pre.boost <- as.data.frame(t(d1.c[,'preBooster',]))
+pre.boost <- pre.boost[!is.na(pre.boost$PCV7) & !is.na(pre.boost$PCV13),]
 
 ```
 
 
-#PCV7 13 ratio
-```{r}
-ratio <- boost$PCV13/boost$PCV7
-study <- gsub( "_.*$", "", rownames(boost) )
-st <- gsub( ".*_", "", rownames(boost) )
+
+#PCV7 13 ratio for post-primary, pre/post booster
+```{r, fig.width=3, fig.height=8}
+par(mfrow=c(3,1), mar=c(4,4,1,1))
+all.ds <- list( 'post.prim'=post.prim,'pre.boost'=pre.boost, 'boost'=boost)
+ds.labels= c('Post primary','Pre-Booster','Post-booster')
+
+for(i in 1:length(all.ds)){
+  ds <- all.ds[[i]]
+ratio <- ds$PCV13/boost$PCV7
+study <- gsub( "_.*$", "", rownames(ds) )
+st <- gsub( ".*_", "", rownames(ds) )
 
 plot.df <- cbind.data.frame(ratio, study, st)
 
-plot(as.numeric(as.factor(plot.df$st)), plot.df$ratio, xaxt='n', bty='l', ylab='Boost Ab Ratio')
+plot(as.numeric(as.factor(plot.df$st)), plot.df$ratio, xaxt='n', bty='l', ylab='Ratio', main=ds.labels[i] , ylim=c(0,1.5))
 axis (side=1, at=c(1:length(unique(plot.df$st))), labels=unique(plot.df$st) )
 abline(h=1, lty=2)
+}
 
 ```
-
-
 
 
 ```{r}
