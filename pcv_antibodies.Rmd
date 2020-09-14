@@ -29,6 +29,23 @@ plot(boost$PCV7, boost$PCV13, bty='l')
 abline(a=0, b=1)
 ```
 
+## From Voysey CID
+Correlate of protection carriage
+ST4: 1.16
+ST6B 0.5
+ST9V 1.31
+ST14 2.48
+ST19F 2.54
+ST23F 0.63
+```{r}
+post.prim <- as.data.frame(t(d1.c[,'3rddoseP',]))
+post.prim <- post.prim[!is.na(post.prim$PCV7) & !is.na(post.prim$PCV13),]
+
+plot(post.prim$PCV7, post.prim$PCV13, bty='l')
+abline(a=0, b=1)
+```
+
+
 ```{r}
 
 ```
