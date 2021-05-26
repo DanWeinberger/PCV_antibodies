@@ -13,7 +13,7 @@ library(reshape2)
 
 ```{r}
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
-d1 <- read_excel("./Data/IgGGMCs.xlsx")
+d1 <- read_excel("./Data/IgGGMCs2.xlsx")
 names(d1)[1] <- 'vax'
 d1$timepoint_dose_weeks <- NULL
 d1.m <- melt(d1, id.vars=c('vax','Dose','Trial'))
