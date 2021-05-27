@@ -22,6 +22,7 @@ d1.m <- d1.m[d1.m$variable %in% pcv7sts ,]
 d1.c <- acast(d1.m, vax~Dose~Trial+variable)
 
 boost <- as.data.frame(t(d1.c[,'Booster',]))
+
 ```
 
 ```{r}
@@ -38,8 +39,12 @@ ST14 2.48
 ST19F 2.54
 ST23F 0.63
 ```{r}
+
 post.prim <- as.data.frame(t(d1.c[,'3rddoseP',]))
 post.prim <- post.prim[!is.na(post.prim$PCV7) & !is.na(post.prim$PCV13),]
+
+#prim2 <- as.data.frame(t(d1.c[,'2nddoseP',]))
+#prim2 <- prim2[!is.na(prim2$PCV7) & !is.na(prim2$PCV13),]
 
 pre.boost <- as.data.frame(t(d1.c[,'preBooster',]))
 pre.boost <- pre.boost[!is.na(pre.boost$PCV7) & !is.na(pre.boost$PCV13),]
@@ -69,6 +74,11 @@ abline(h=1, lty=2)
 
 ```
 
+```{r}
+
+```
+
+
 
 ```{r}
 d1.m.boost <- d1.m[d1.m$Dose=='Booster',]
@@ -81,5 +91,158 @@ d1.c.alt <- d1.c.alt[c(2,1),]
 matplot(log(d1.c.alt[,-1]), type='l', col=rgb(0,0,0,alpha=0.1), lty=1)
 
 ```
+
+## Siber
+https://www.sciencedirect.com/science/article/pii/S0264410X07001569?via=ihub
+
+This is if we want to derive the correlate of protection based on immunogenicity and efficacy data; or if we want to see the proportion of population over correlate of protection
+```{r}
+
+#Northern California pooled serotypes; serotype 19F
+
+N.trial=c(190,189)
+ab <- list('vax'=c(1.44, 1.26,1.65),
+'unvax'=c(0.11, 0.09, 0.13))
+
+ab <- lapply(ab, function(x) x*1)
+
+# ab <- list('vax'=c(2.54,2.13, 3.02),
+# 'unvax'=c(0.03, 0.02, 0.03)) 
+
+correlates.func <- function(ab1, N.people, efficacy=0.846, corr.prot=0.35){
+    ab.se <- lapply(ab1, function(x){
+      se.est.l <- (log10(x[1])-log10(x[2])) /1.96
+      se.est.u <- (log10(x[3])-log10(x[1]))/1.96
+      log10.se.est <- mean(c(se.est.u,se.est.l))
+      log10.sd.est <- log10.se.est*sqrt(N.people[1])
+      
+      return(c('mean'=x[1], 'log.mean'=log10(x[1]),'log.se'=log10.se.est,'log.sd'=log10.sd.est))
+    })
+    
+    
+    #plot(df1$conc, df1$prop)
+    
+    xvals <- 10^(seq(-2,2, by=0.02))
+    cum.vax <- 1 - pnorm(log10(xvals), ab.se$vax['log.mean'], ab.se$vax['log.sd'])
+    cum.unvax <- 1 - pnorm(log10(xvals), ab.se$unvax['log.mean'], ab.se$unvax['log.sd'])
+    
+    pct.protected <-1 - pnorm(log10(corr.prot), ab.se$vax['log.mean'], ab.se$vax['log.sd'])
+
+        dens1 <- dnorm(log10(xvals), ab.se$vax['log.mean'], ab.se$vax['log.sd'])
+        dens1 <- dens1/sum(dens1)
+        
+                dens2 <- dnorm(log10(xvals), ab.se$vax['log.mean']+log10(0.7), ab.se$vax['log.sd'])
+        dens2 <- dens2/sum(dens2)
+
+        
+    #Compare to Fig 2 in Black, PIDJ
+    plot(log10(xvals), cum.vax, type='l', col='red', xaxt='n',xlab='[Ab]', ylab='Proportion', bty='l')
+    points(log10(xvals), cum.unvax, type='l', col='blue')
+    abline(v=log10(c(0.15,0.5,1.0)), lty=3)
+    axis(side=1, at=log10(c(0.01,0.1,1,10,100)), c(0.01,0.1,1,10,100))
+    legend(x=0.7, y=1, legend=c('Vaccine','Control'),lty=1, col=c('red','blue'), bty='n')
+    
+#Histogram   
+    par(mfrow=c(2,1), mar=c(2,2,1,1))
+    plot(log10(xvals), dens1,xaxt='n',xlab='[Ab]', 
+         ylab='Proportion', bty='l', type='l', yaxs="i")
+        axis(side=1, at=log10(c(0.01,0.1,1,10,100)),
+             c(0.01,0.1,1,10,100))
+     # abline(v=log10(0.35), lty=2, col=rgb(0,0,0,alpha=0.2))  
+      polygon( log10(c(0.3,0.3, 0.7,0.7)), 
+               c( 0,1, 1,0) ,
+               col=rgb(0,0,0,alpha=0.3), 
+               border=NA )
+      shadex <- log10(xvals)[log10(xvals)<log10(0.35)]
+      shadex2 <- log10(xvals)[log10(xvals)>=log10(0.35)]
+
+            polygon(c(shadex, rev(shadex)), c(dens1[1:length(shadex)], 
+                                        rep(0, length(shadex)) ),
+                    col=rgb(1,0,0,alpha=0.5), border=NA  )
+                        polygon(c(shadex2, rev(shadex2)),
+                                               c(dens1[(length(shadex)+1):(length(dens1))], 
+                                        rep(0, length(shadex2)) ),
+                    col=rgb(0,0,1,alpha=0.5), border=NA  )
+                        
+      #add 2nd
+    plot(log10(xvals), dens2,xaxt='n',xlab='[Ab]', 
+         ylab='Proportion', bty='l', type='l', yaxs="i")
+        axis(side=1, at=log10(c(0.01,0.1,1,10,100)),
+             c(0.01,0.1,1,10,100))
+      abline(v=log10(0.35), lty=2, col=rgb(0,0,0,alpha=0.2))  
+  polygon(c(shadex, rev(shadex)), c(dens2[1:length(shadex)], 
+                                        rep(0, length(shadex)) ),
+                    col=rgb(1,0,0,alpha=0.5), border=NA  )
+                        polygon(c(shadex2, rev(shadex2)),
+                                               c(dens2[(length(shadex)+1):(length(dens2))], 
+                                        rep(0, length(shadex2)) ),
+                    col=rgb(0,0,1,alpha=0.5), border=NA  )
+     
+      #INSTEAD DO viOILIN
+  #     p.ds1 <- cbind.data.frame('vax'='PCV13','val'=rnorm(10000,ab.se$vax['log.mean'], ab.se$vax['log.sd']))
+  #     p.ds2 <- cbind.data.frame('vax'='PCV20','val'=rnorm(10000,ab.se$vax['log.mean']+log10(0.5), ab.se$vax['log.sd']))
+  #     p.ds.c <- rbind.data.frame(p.ds1, p.ds2)
+  #     p.ds.c$vax <- as.factor(p.ds.c$vax)
+  #     p.ds.c.top <- p.ds.c[p.ds.c$val>log10(0.35),]
+  #     p.ds.c.bottom <- p.ds.c[p.ds.c$val<=log10(0.35),]
+  #     
+  #     p <- ggplot(p.ds.c.top, aes(x=vax, y=val, fill=vax)) + 
+  # geom_violin(trim=T, adjust=2)+
+  # geom_violin(data=p.ds.c.bottom,trim=T, adjust=2)+
+  #               theme_classic()
+  #      
+    
+    #or invert
+    plot(log10(xvals), 1-cum.vax, type='l', col='red')
+    points(log10(xvals), 1-cum.unvax, type='l', col='blue')
+    
+    
+    ratio1 <- 1-(1-cum.vax) / (1-cum.unvax)
+    plot(log10(xvals), ratio1)
+    
+    ve <- efficacy
+    plot(log10(xvals),abs(ratio1-ve), ylim=c(-2,2))
+    xvals[which(min(abs(ratio1-ve), na.rm=T )==abs(ratio1-ve))]
+
+    return(pct.protected)
+    
+    
+}
+
+d1 <- correlates.func(ab1=ab, N.people = N.trial[1],corr.prot=0.35)
+d1
+
+```
+
+```{r}
+#Serotype 1 CAPITA
+#https://academic.oup.com/cid/article/65/5/787/3920608#96465713
+#N=393
+#base.titers <- c(10, 9.7,10.6) 
+#titer30d <- c(107, 90.9,126) 
+
+titers <- list('unvax'=base.titers, 'vax'=titer30d)
+ab.sd <- lapply(titers, function(x){
+      sd.est.l <- (log10(x[1])-log10(x[2])) /1.96
+      sd.est.u <- (log10(x[3])-log10(x[1]))/1.96
+      log10.sd.est <- mean(c(sd.est.u,sd.est.l))
+      return(c('mean'=x[1], 'log.mean'=log10(x[1]),'log.sd'=log10.sd.est))
+    })
+
+xvals <- 10^(seq(0,4, by=0.02))
+    cum.vax <- 1 - pnorm(log10(xvals), ab.sd$vax['log.mean'], ab.sd$vax['log.sd'])
+    cum.unvax <- 1 - pnorm(log10(xvals), ab.sd$unvax['log.mean'], ab.sd$unvax['log.sd'])
+
+    plot(log10(xvals), cum.vax, type='l', col='red', xaxt='n')
+    points(log10(xvals), cum.unvax, type='l', col='blue')
+    abline(v=log10(c(0.15,0.5,1.0)), lty=3)
+    axis(side=1, at=log10(c(0.01,0.1,1,10,100)), c(0.01,0.1,1,10,100))
+    
+    
+```
+
+
+
+
 
 
