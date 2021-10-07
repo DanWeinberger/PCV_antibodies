@@ -9,11 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(reshape2)
+library(shiny)
+library(ggplot2)
 ```
 
 ```{r}
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
-d1 <- read_excel("./Data/IgGGMCs2.xlsx")
+d1a <- read_excel("./Data/IgGGMCs2.xlsx")
+d1 <- d1a[d1a$Trial!='US2',]
 names(d1)[1] <- 'vax'
 d1$timepoint_dose_weeks <- NULL
 d1.m <- melt(d1, id.vars=c('vax','Dose','Trial'))
@@ -22,6 +25,9 @@ d1.m <- d1.m[d1.m$variable %in% pcv7sts ,]
 d1.c <- acast(d1.m, vax~Dose~Trial+variable)
 
 boost <- as.data.frame(t(d1.c[,'Booster',]))
+
+d2 <- dcast(d1.m, vax+Dose+Trial+variable~.)
+names(d2) <- c('vax','Dose','Trial','st','gmc')
 
 ```
 
@@ -73,12 +79,26 @@ abline(h=1, lty=2)
 }
 
 ```
+Quantify differences in a regression. Note this doesn't account for differing uncertainty between studies.
 
 ```{r}
+names(d1a)[1] <-'vax'
+
+d1a.m <- melt(d1a,id.vars = c('vax','Dose','Trial', 'timepoint_dose_weeks'))
+d1a.m$value[d1a.m$value==0] <- 0.01 
+d1a.m$log.ab <- log(d1a.m$value)
+d1a.m$Dose <- as.factor(d1a.m$Dose)
+d1a.m$timepoint_dose_weeks <- as.factor(d1a.m$timepoint_dose_weeks)
+d1a.m$vax <- as.factor(d1a.m$vax)
+d1a.m$vax <- relevel(d1a.m$vax, 'PCV7')
+
+d1a.m$st <- as.factor(d1a.m$variable)
+
+d1a.m.spl <- split(d1a.m,d1a.m$Dose)
+mod1 <- lm(log.ab ~  timepoint_dose_weeks + vax  +st + vax*st, data=d1a.m.spl[["3rddoseP"]]) 
+summary(mod1)
 
 ```
-
-
 
 ```{r}
 d1.m.boost <- d1.m[d1.m$Dose=='Booster',]
@@ -239,6 +259,63 @@ xvals <- 10^(seq(0,4, by=0.02))
     axis(side=1, at=log10(c(0.01,0.1,1,10,100)), c(0.01,0.1,1,10,100))
     
     
+```
+
+
+##Sample shiny App
+```{r period.slider, echo=FALSE}
+#library(shiny)
+f1.c <- acast(d1.m, vax~Dose~Trial~variable)
+
+shinyApp(
+
+  ui = fluidPage(
+      sidebarPanel(
+    selectInput("vax", "Vaccine:",
+               unique(d2$vax), multiple=T, selected=unique(d2$vax)),
+    checkboxGroupInput("country", "Country:",
+               unique(d2$Trial), selected=unique(d2$Trial)),
+    checkboxGroupInput("doses", "Doses:",
+               unique(d2$Dose), selected=c("3rddoseP" ,"Booster")),
+    checkboxGroupInput("st", "Serotypes:",
+                unique(d2$st),  selected=unique(d2$st)),
+    selectInput('plot_type', 'Plot type:',
+                c('Raw Concentration','Ratio'), selected= 'Raw Concentration') 
+    ),
+    mainPanel(
+      plotOutput("periodPlot")
+  )
+  ), 
+
+  server = function(input, output) {
+    output$periodPlot = renderPlot({
+      
+     # if(input$plot_type=='Raw Concentation'){
+
+        plot.ds <- d2[(d2$vax %in% input$vax & 
+                        d2$Dose %in% input$doses & 
+                        d2$st %in% input$st &
+                        d2$Trial %in% input$country ) ,]
+      
+        p1 <- ggplot(plot.ds, aes(x=vax, y=log(gmc), group=vax, col=vax) ) +
+          geom_point() +
+          geom_line(aes(group = Trial),color="grey") +
+          theme_classic()+
+          ylab('log(GMC)') +
+          facet_grid(Dose~st ) +
+          theme(panel.spacing = unit(1, "lines"))
+        p1
+  
+  
+      
+     # }else{
+        
+      #}
+      
+      
+    },width = "auto", height = "auto")
+  }
+)
 ```
 
 
