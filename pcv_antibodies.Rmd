@@ -265,7 +265,6 @@ xvals <- 10^(seq(0,4, by=0.02))
 ##Sample shiny App
 ```{r period.slider, echo=FALSE}
 #library(shiny)
-f1.c <- acast(d1.m, vax~Dose~Trial~variable)
 
 shinyApp(
 
@@ -290,7 +289,7 @@ shinyApp(
   server = function(input, output) {
     output$periodPlot = renderPlot({
       
-     # if(input$plot_type=='Raw Concentation'){
+      if(input$plot_type=='Raw Concentration'){
 
         plot.ds <- d2[(d2$vax %in% input$vax & 
                         d2$Dose %in% input$doses & 
@@ -308,9 +307,24 @@ shinyApp(
   
   
       
-     # }else{
+     }else{
+        plot.ds <- d2[(d2$vax %in% input$vax & 
+                        d2$Dose %in% input$doses & 
+                        d2$st %in% input$st &
+                        d2$Trial %in% input$country ) ,]
+        plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+st ~vax, value.var='gmc')
+        plot.ds.c <- plot.ds.c[!is.na(plot.ds.c$PCV13) & !is.na(plot.ds.c$PCV7),]
+         p2 <- ggplot(plot.ds.c, aes(x=st, y=log(PCV13/PCV7), group=Trial, col=Trial) ) +
+          geom_point() +
+          theme_classic()+
+          ylab('log(GMC)') +
+         geom_line(aes(group = Trial),color="grey") +
+          geom_hline(yintercept=0) +
+          facet_grid(Dose~. ) +
+          theme(panel.spacing = unit(1, "lines"))
+        p2
         
-      #}
+      }
       
       
     },width = "auto", height = "auto")
