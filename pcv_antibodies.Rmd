@@ -13,7 +13,8 @@ library(reshape2)
 
 ```{r}
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
-d1 <- read_excel("./Data/IgGGMCs2.xlsx")
+d1a <- read_excel("./Data/IgGGMCs2.xlsx")
+d1 <- d1a[d1a$Trial!='US2',]
 names(d1)[1] <- 'vax'
 d1$timepoint_dose_weeks <- NULL
 d1.m <- melt(d1, id.vars=c('vax','Dose','Trial'))
@@ -73,12 +74,26 @@ abline(h=1, lty=2)
 }
 
 ```
+Quantify differences in a regression. Note this doesn't account for differing uncertainty between studies.
 
 ```{r}
+names(d1a)[1] <-'vax'
+
+d1a.m <- melt(d1a,id.vars = c('vax','Dose','Trial', 'timepoint_dose_weeks'))
+d1a.m$value[d1a.m$value==0] <- 0.01 
+d1a.m$log.ab <- log(d1a.m$value)
+d1a.m$Dose <- as.factor(d1a.m$Dose)
+d1a.m$timepoint_dose_weeks <- as.factor(d1a.m$timepoint_dose_weeks)
+d1a.m$vax <- as.factor(d1a.m$vax)
+d1a.m$vax <- relevel(d1a.m$vax, 'PCV7')
+
+d1a.m$st <- as.factor(d1a.m$variable)
+
+d1a.m.spl <- split(d1a.m,d1a.m$Dose)
+mod1 <- lm(log.ab ~  timepoint_dose_weeks + vax  +st + vax*st, data=d1a.m.spl[["3rddoseP"]]) 
+summary(mod1)
 
 ```
-
-
 
 ```{r}
 d1.m.boost <- d1.m[d1.m$Dose=='Booster',]
