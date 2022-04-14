@@ -29,34 +29,36 @@ d2 <- d2[order(d2$vax),]
 
 shinyApp(
   
-  ui = fluidPage(
+  ui = dashboardPage(
+    dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
+    dashboardSidebar( selectInput("vax", "Vaccine:",
+                                  unique(d2$vax), multiple=T, selected=unique(d2$vax)),
+                      selectInput("country", "Country:",
+                                         unique(d2$Trial), selected=unique(d2$Trial), multiple=T),
+                      checkboxGroupInput("doses", "Doses:",
+                                         unique(d2$Dose), selected=c("3rddoseP" ,"Booster")),
+                      checkboxGroupInput("st", "Serotypes:",
+                                         unique(d2$st),  selected=unique(d2$st)),
+                      selectInput("ref_vax", "Reference vaccine:",
+                                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[1]),
+                      selectInput("comp_vax", "Comparator vaccine",
+                                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[2])
+                      ),
+    dashboardBody(
     
-    titlePanel("Comparison of Immmunogenicity of PCVs"),
-    # Sidebar layout with input and output definitions ----
-    sidebarLayout(
+      fluidRow(
+        box(
+          tabPanel("Concentration", plotlyOutput("plot_conc", height='600px'))
+        ),
+        box(
+          tabPanel("Ratio", plotlyOutput("plot_ratio", height='600px'))
+        )
       
-    sidebarPanel(
-      selectInput("vax", "Vaccine:",
-                  unique(d2$vax), multiple=T, selected=unique(d2$vax)),
-      checkboxGroupInput("country", "Country:",
-                         unique(d2$Trial), selected=unique(d2$Trial)),
-      checkboxGroupInput("doses", "Doses:",
-                         unique(d2$Dose), selected=c("3rddoseP" ,"Booster")),
-      checkboxGroupInput("st", "Serotypes:",
-                         unique(d2$st),  selected=unique(d2$st)),
-      selectInput("ref_vax", "Reference vaccine:",
-                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[1]),
-      selectInput("comp_vax", "Comparator vaccine",
-                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[2]),
-     ),
-    mainPanel(
-      tabsetPanel(type = "tabs",
-                  tabPanel("Concentration", plotlyOutput("plot_conc")),
-                  tabPanel("Ratio", plotlyOutput("plot_ratio"), height='100%')
-      ), height=12
-      )
+        
   )
-  ), 
+  )
+  ),
+  
   
   server = function(input, output) {
     output$plot_conc = renderPlotly({
@@ -102,7 +104,7 @@ shinyApp(
         )
         
         dat_text2 <- data.frame(
-          label = c(rep('', length( unique(plot.ds.c2.m$st))-1) ,   paste0("Higher immunogenicity for ", input$ref.vax)),
+          label = c(rep('', length( unique(plot.ds.c2.m$st))-1) ,   paste0("Higher immunogenicity for ", input$ref_vax)),
           st   = unique(plot.ds.c2.m$st)
         )
         
@@ -111,7 +113,7 @@ shinyApp(
           ggplot(plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax,], aes(y=Trial, x=(value), col=st ) ) +
             geom_point() +
             theme_classic()+
-            ggtitle(paste0("Comparison of ", input$ref.vax, ' to ', input$comp_vax)) +
+            ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
             ylab('Study') +
             xlab('Ratio of Immunogenicity')+
             geom_vline(xintercept=1, lty=2, col='gray') +
@@ -136,7 +138,6 @@ shinyApp(
               col='gray'
             )
           )
-        
       })
   }
 )
