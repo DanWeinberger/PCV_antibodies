@@ -1,13 +1,16 @@
 plot.ds <- d2[(d2$vax %in%  unique(d2$vax) & 
-                 d2$Dose %in% c("3rddoseP" ) & 
+                 d2$Dose %in% c("Booster" ) & 
                  d2$st %in%  unique(d2$st) &
                  d2$Trial %in% unique(d2$Trial) ) ,]
 
 ref.vax='PCV7'
 
 plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+st ~vax, value.var='gmc')
-vax.dat <- plot.ds.c[,unique(d2$vax), drop=F]
+vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vax)), drop=F]
+
 vax.dat.ratio <- as.data.frame(apply(vax.dat,2, function(x) x/vax.dat[,ref.vax]))
+
+
 vax.dat.ratio <- vax.dat.ratio[, -grep(ref.vax, names(vax.dat.ratio) ), drop=F]
 #names(vax.dat.ratio) <- paste0('Comparator ', names(vax.dat.ratio))
 

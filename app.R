@@ -35,8 +35,8 @@ shinyApp(
                                   unique(d2$vax), multiple=T, selected=unique(d2$vax)),
                       selectInput("country", "Country:",
                                          unique(d2$Trial), selected=unique(d2$Trial), multiple=T),
-                      checkboxGroupInput("doses", "Doses:",
-                                         unique(d2$Dose), selected=c("3rddoseP" ,"Booster")),
+                      selectInput("doses", "Doses:",
+                                         unique(d2$Dose), selected=c("3rddoseP")),
                       checkboxGroupInput("st", "Serotypes:",
                                          unique(d2$st),  selected=unique(d2$st)),
                       selectInput("ref_vax", "Reference vaccine:",
@@ -48,10 +48,10 @@ shinyApp(
     
       fluidRow(
         box(
-          tabPanel("Concentration", plotlyOutput("plot_conc", height='600px'))
+          tabPanel("Concentration", plotlyOutput("plot_conc", height='800px'))
         ),
         box(
-          tabPanel("Ratio", plotlyOutput("plot_ratio", height='600px'))
+          tabPanel("Ratio", plotlyOutput("plot_ratio", height='800px'))
         )
       
         
@@ -90,7 +90,7 @@ shinyApp(
                          d2$Trial %in% input$country ) ,]
         plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+st ~vax, value.var='gmc')
         
-        vax.dat <- plot.ds.c[,input$vax, drop=F]
+        vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vax)), drop=F]
         vax.dat.ratio <- as.data.frame(apply(vax.dat,2, function(x) x/vax.dat[,input$ref_vax]))
         vax.dat.ratio <- vax.dat.ratio[, -grep(input$ref_vax, names(vax.dat.ratio) ), drop=F]
        # names(vax.dat.ratio) <- paste0('Numerator ', names(vax.dat.ratio))
