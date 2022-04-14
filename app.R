@@ -47,13 +47,16 @@ shinyApp(
     dashboardBody(
     
       fluidRow(
-        box(
-          tabPanel("Concentration", plotlyOutput("plot_conc", height='500px'))
+        tabBox(
+          title = "",
+          id = "tabset1", height = "600px",
+          tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc") ),
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa"))
         ),
         box(
-          tabPanel("Ratio", plotlyOutput("plot_ratio", height='800px'))
-        )
-      
+          tabPanel("Ratio", plotlyOutput("plot_ratio", height='600px'))
+        ),
+        infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
         
   )
   )
@@ -61,7 +64,7 @@ shinyApp(
   
   
   server = function(input, output) {
-    output$plot_conc = renderPlotly({
+    output$plot_gmc = renderPlotly({
       
         plot.ds <- d2[(d2$vax %in% input$vax & 
                          d2$Dose %in% input$doses & 
@@ -71,7 +74,7 @@ shinyApp(
         p1 <-   ggplotly(
           ggplot(plot.ds, aes(x=vax, y=log(gmc), group=vax, col=vax) ) +
           geom_point() +
-          ggtitle("Antibody concentration by product") +
+          ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = Trial),color="grey") +
           theme_classic()+
           ylab('log(GMC)') +
@@ -81,7 +84,30 @@ shinyApp(
         )
 
     })
-        
+    
+    #OPA
+
+    output$plot_opa = renderPlotly({
+      
+      plot.ds <- d2[(d2$vax %in% input$vax & 
+                       d2$Dose %in% input$doses & 
+                       d2$st %in% input$st &
+                       d2$Trial %in% input$country ) ,]
+      
+      p2 <-   ggplotly(
+        ggplot(plot.ds, aes(x=vax, y=log(gmc), group=vax, col=vax) ) +
+          geom_point() +
+          ggtitle("Functional antibody (OPA) by product") +
+          geom_line(aes(group = Trial),color="grey") +
+          theme_classic()+
+          ylab('log(GMC)') +
+          facet_grid(Dose~st ) +
+          theme(axis.text.x=element_text(angle=90, hjust=1)) +
+          theme(panel.spacing = unit(1.5, "lines"))
+      )
+      
+    })
+    
   
     output$plot_ratio = renderPlotly({
       plot.ds <- d2[(d2$vax %in% input$vax & 
