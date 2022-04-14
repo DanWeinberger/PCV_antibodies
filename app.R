@@ -48,7 +48,7 @@ shinyApp(
     
       fluidRow(
         box(
-          tabPanel("Concentration", plotlyOutput("plot_conc", height='800px'))
+          tabPanel("Concentration", plotlyOutput("plot_conc", height='500px'))
         ),
         box(
           tabPanel("Ratio", plotlyOutput("plot_ratio", height='800px'))
