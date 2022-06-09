@@ -49,18 +49,22 @@ shinyApp(
       fluidRow(
         tabBox(
           title = "",
-          id = "tabset1", height = "600px",
+          id = "tabset1", height = "auto", width=12,
           tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc") ),
           tabPanel("Activity (OPA)", plotlyOutput("plot_opa"))
-        ),
+        )),
+        fluidRow(
+          
         box(
-          tabPanel("Ratio", plotlyOutput("plot_ratio", height='600px'))
-        ),
+          tabPanel("Ratio", plotlyOutput("plot_ratio",height='600px' , inline=F)),height='600px', width=12
+        ), 
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
         
+        ),
+
   )
   )
-  ),
+  ,
   
   
   server = function(input, output) {
@@ -162,7 +166,10 @@ shinyApp(
               hjust   = 1,
               vjust   = 0.5,
               col='gray'
-            )
+            ) +
+            theme(axis.title.y=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks.y=element_blank())
           )
       })
   }
