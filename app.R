@@ -38,10 +38,16 @@ d2 <- d2 %>%
 
 
 #check for duplicates
+# 
+# dups <- d1%>%
+#   group_by(Trial, dose_number, vaccine, standard_age_list, assay, serotype) %>%
+#   mutate(n_obs=n())
 
-dups <- d1%>%
-  group_by(Trial, dose_number, vaccine, standard_age_list, assay, serotype) %>%
-  mutate(n_obs=n())
+
+#audit table
+# d1.m <- melt(d1[,c('vaccine','dose_number','study_name','serotype', 'assay')], id.vars=c('vaccine','dose_number','study_name','serotype','assay'))
+# d1.c <- dcast(d1.m, study_name ~ dose_number+vaccine + assay  ,fun.aggregate = length)
+# write.csv(d1.c,'./Data/audit.csv')
 
 shinyApp(
   
