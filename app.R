@@ -54,6 +54,7 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
+
                                   unique(d2$vaccine), multiple=T, selected=unique(d2$vax)),
                       selectInput("st", "Serotypes:",multiple=T,
                                   unique(d2$serotype),  selected=c('4','14','19F','23F')),
@@ -66,6 +67,7 @@ shinyApp(
                       selectInput("ref_vax", "Reference vaccine:",
                                   unique(d2$vax), multiple=F, selected='PCV10 (Synflorix)'),
                       selectInput("comp_vax", "Comparator vaccine",
+
                                   unique(d2$vax), multiple=F, selected='PCV10 (Pneumosil)'),
                       selectInput("Trial", "Trial:",
                                   unique(d2$Trial), selected=unique(d2$Trial), multiple=T)
@@ -76,20 +78,23 @@ shinyApp(
       fluidRow(
         tabBox(
           title = "",
-          id = "tabset1", height = "600px",width=8,
+          id = "tabset1", height = "auto", width=12,
           tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc") ),
           tabPanel("Activity (OPA)", plotlyOutput("plot_opa"))
         )),
-      fluidRow(
-        
+        fluidRow(
+          
         box(
-          tabPanel("Ratio", plotlyOutput("plot_ratio", height='600px',width=8))
-        ),
+          tabPanel("Ratio", plotlyOutput("plot_ratio",height='600px' , inline=F)),height='600px', width=12
+        ), 
+
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
         
+        ),
+
   )
   )
-  ),
+  ,
   
   
   server = function(input, output) {
@@ -209,6 +214,7 @@ shinyApp(
               hjust   = 1,
               vjust   = 0.5,
               col='gray'
+
             )+
             theme(axis.title.y=element_blank(),
                   axis.text.y=element_blank(),
