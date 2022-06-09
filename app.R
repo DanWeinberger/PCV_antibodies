@@ -33,16 +33,16 @@ shinyApp(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
                                   unique(d2$vax), multiple=T, selected=unique(d2$vax)),
-                      selectInput("country", "Country:",
-                                         unique(d2$Trial), selected=unique(d2$Trial), multiple=T),
-                      selectInput("doses", "Doses:",
+                    selectInput("doses", "Doses:",
                                          unique(d2$Dose), selected=c("3rddoseP")),
-                      checkboxGroupInput("st", "Serotypes:",
+                      selectInput("st", "Serotypes:",multiple=T,
                                          unique(d2$st),  selected=unique(d2$st)),
                       selectInput("ref_vax", "Reference vaccine:",
                                   unique(d2$vax), multiple=F, selected=unique(d2$vax)[1]),
                       selectInput("comp_vax", "Comparator vaccine",
-                                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[2])
+                                  unique(d2$vax), multiple=F, selected=unique(d2$vax)[2]),
+                    selectInput("country", "Country:",
+                                unique(d2$Trial), selected=unique(d2$Trial), multiple=T)
                       ),
     dashboardBody(
     
