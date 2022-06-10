@@ -1,11 +1,39 @@
-plot.ds <- d2[(d2$vax %in%  unique(d2$vax) & 
-                 d2$Dose %in% c("3/4" ) & 
-                 d2$serotype %in%  unique(d2$serotype) &
-                 d2$Trial %in% unique(d2$Trial) )&
-                d2$phase =='Phase 3',]
+
+plot.ds <- d2[(d2$vaccine %in% unique(d2$vaccine) & 
+                 d2$Dose %in% c("2/3") & 
+                 d2$serotype %in% c('4','14','19F','23F') &
+                 d2$study_id %in% unique(d2$study_id)  &
+                 d2$standard_age_list %in% "[\"Child\"]"  &
+                 d2$phase %in% "Phase 3")
+              ,] 
 
 ref_vax='PCV10 (Pneumosil)'
 comp_vax='PCV10 (Synflorix)'
+
+
+p1 <-   ggplotly(
+  ggplot(plot.ds[plot.ds$assay=='IgG',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+    geom_point() +
+    ggtitle("Antibody concentration (GMC) by product") +
+    geom_line(aes(group = study_id),color="grey") +
+    theme_classic()+
+    ylab('log(GMC)') +
+    facet_grid(Dose~serotype ) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)) +
+    theme(panel.spacing = unit(1.5, "lines"))
+)
+
+p2 <-   ggplotly(
+  ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+    geom_point() +
+    ggtitle("Functional antibody (OPA) by product") +
+    geom_line(aes(group = study_id),color="grey") +
+    theme_classic()+
+    ylab('log(GMC)') +
+    facet_grid( ~serotype ) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)) +
+    theme(panel.spacing = unit(1.5, "lines"))
+)
 
 
 plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+serotype +assay~vaccine, value.var='value')
