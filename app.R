@@ -22,7 +22,7 @@ names(d1) <- gsub('clinical_trial_','',names(d1))
 d1$Trial <- as.numeric(as.factor(d1$study_name))
 
 keep.vars <- c('vaccine','dose_number','Trial','location_continent',
-               'time_frame','standard_age_list','phase','assay','serotype')
+               'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks')
 
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
@@ -40,14 +40,14 @@ d2 <- d2 %>%
 #check for duplicates
 # 
 # dups <- d1%>%
-#   group_by(Trial, dose_number, vaccine, standard_age_list, assay, serotype) %>%
+#   group_by(Trial, dose_number, time_frame_weeks,vaccine, standard_age_list, assay, serotype) %>%
 #   mutate(n_obs=n())
 
 
 #audit table
-# d1.m <- melt(d1[,c('vaccine','dose_number','study_name','serotype', 'assay')], id.vars=c('vaccine','dose_number','study_name','serotype','assay'))
-# d1.c <- dcast(d1.m, study_name ~ dose_number+vaccine + assay  ,fun.aggregate = length)
-# write.csv(d1.c,'./Data/audit.csv')
+d1.m <- melt(d1[,c('vaccine','dose_number','time_frame_weeks','study_id','serotype', 'assay')], id.vars=c('vaccine','dose_number','time_frame_weeks','study_id','serotype','assay'))
+d1.c <- dcast(d1.m, study_id ~ dose_number+time_frame_weeks+vaccine + assay  ,fun.aggregate = length)
+write.csv(d1.c,'./Data/audit.csv')
 
 shinyApp(
   
@@ -164,7 +164,7 @@ shinyApp(
         
         vax.dat.ratio <- as.data.frame(apply(vax.dat,2, function(x) x/vax.dat[,input$ref_vax]))
         
-        vax.dat.ratio <- vax.dat.ratio[, -which(ref_vax==names(vax.dat.ratio) ), drop=F]
+        vax.dat.ratio <- vax.dat.ratio[, -which(input$ref_vax==names(vax.dat.ratio) ), drop=F]
         
         # names(vax.dat.ratio) <- paste0('Numerator ', names(vax.dat.ratio))
         
