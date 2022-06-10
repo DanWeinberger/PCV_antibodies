@@ -11,6 +11,31 @@ ref_vax='PCV10 (Pneumosil)'
 comp_vax='PCV10 (Synflorix)'
 
 
+plot.ds$study_id <- factor(plot.ds$study_id)
+p1 <-   ggplotly(
+  ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+    geom_point() +
+    ggtitle("Antibody concentration (GMC) by product") +
+    # geom_line(aes(group = study_id),color="grey") +
+    theme_classic()+
+    ylab('log(GMC)') +
+    #facet_grid(Dose~serotype ) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)) +
+    theme(panel.spacing = unit(1.5, "lines"))
+)
+p2 <-   ggplotly(
+  ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+    geom_point() +
+    ggtitle("Functional antibody (OPA) by product") +
+     geom_line(aes(group = study_id),color="grey") +
+    theme_classic()+
+    ylab('log(GMC)') +
+     facet_grid( ~serotype ) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)) +
+    theme(panel.spacing = unit(1.5, "lines"))
+)
+
+
 p1 <-   ggplotly(
   ggplot(plot.ds[plot.ds$assay=='IgG',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
     geom_point() +
@@ -36,8 +61,7 @@ p2 <-   ggplotly(
 )
 
 
-plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+serotype +assay~vaccine, value.var='value')
-plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+serotype +assay~vaccine, value.var='value')
+plot.ds.c <- reshape2::dcast(plot.ds, Dose+study_id+serotype +assay~vaccine, value.var='value')
 
 vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
 vax.dat.ratio <- as.data.frame(apply(vax.dat,2, function(x) x/vax.dat[,ref_vax]))
@@ -45,12 +69,12 @@ vax.dat.ratio <- vax.dat.ratio[, -which(ref_vax==names(vax.dat.ratio) ), drop=F]
 
 # names(vax.dat.ratio) <- paste0('Numerator ', names(vax.dat.ratio))
 
-plot.ds.c2 <- cbind.data.frame(plot.ds.c[c('Dose','Trial','serotype','assay')],vax.dat.ratio)
-plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('Dose','Trial','serotype','assay'))
+plot.ds.c2 <- cbind.data.frame(plot.ds.c[c('Dose','study_id','serotype','assay')],vax.dat.ratio)
+plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('Dose','study_id','serotype','assay'))
 
 plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==comp_vax & plot.ds.c2.m$assay=='IgG',]
 
-plot.df$Trial <- as.numeric( as.factor(plot.df$Trial))
+plot.df$study_id <- as.numeric( as.factor(plot.df$study_id))
 
 plot.df <- plot.df[!is.na(plot.df$value),]
 
@@ -65,7 +89,7 @@ dat_text2 <- data.frame(
 )
 
 p2 <- ggplotly(
-  ggplot(plot.df, aes(y=Trial, x=(value), col=serotype ) ) +
+  ggplot(plot.df, aes(y=study_id, x=(value), col=serotype ) ) +
     geom_point() +
     theme_classic()+
     ggtitle(paste0("Comparison of ", ref_vax, ' to ', comp_vax)) +
