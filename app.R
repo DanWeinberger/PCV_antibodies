@@ -48,37 +48,39 @@ d2$Dose <- as.factor(d2$Dose)
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
 
+d2$dos
 
-d2$time_since_vax_m <- NA
-d2$time_since_vax_m[c(grep('Day 30',d2$time_frame ),
-                      grep('4 weeks',d2$time_frame ),
-                      grep('1 MONTH',toupper(d2$time_frame )),
-                      grep('One month',d2$time_frame ),
-                      grep('Month after the infant', d2$time_frame)
-                      )] <- 1
-
-d2$dose_descr <- NA
-d2$dose_descr[c(grep('INFANT',toupper(d2$time_frame )),
-                      grep('after the third dose', d2$time_frame)
-                       )] <- 'post_primary' 
-d2$dose_descr[c(grep('TODDLER',toupper(d2$time_frame )),
-                      grep('4th', d2$time_frame),
-                      grep('BOOST',toupper(d2$time_frame )),
-                      grep('VACCINATION 4',toupper(d2$time_frame ))
-                      )] <- 'post_boost' 
-d2$dose_descr[is.na(d2$time_since_vax_m)] <- NA #for 1 year post-dose
-d2$dose_descr[grepl('Adult', d2$standard_age_list) & !grepl('Child', d2$standard_age_list) & 
-                                            (grepl('VACCINATION 1',toupper(d2$time_frame ))|
-                                                      grepl('VAX 1',toupper(d2$time_frame )) |
-                                                      grepl('DAY 30',toupper(d2$time_frame ))       ) ] <- 
-                                                                'Adult dose 1' #for 1 year post-dose
-
-d2 <- d2[!is.na(d2$dose_descr),] ##!!!!!!CAREFUL--DOSE_DESCR IS MISSING RIGHT NOW FOR MANY
+# 
+# d2$time_since_vax_m <- NA
+# d2$time_since_vax_m[c(grep('Day 30',d2$time_frame ),
+#                       grep('4 weeks',d2$time_frame ),
+#                       grep('1 MONTH',toupper(d2$time_frame )),
+#                       grep('One month',d2$time_frame ),
+#                       grep('Month after the infant', d2$time_frame)
+#                       )] <- 1
+# 
+# d2$dose_descr <- NA
+# d2$dose_descr[c(grep('INFANT',toupper(d2$time_frame )),
+#                       grep('after the third dose', d2$time_frame)
+#                        )] <- 'post_primary' 
+# d2$dose_descr[c(grep('TODDLER',toupper(d2$time_frame )),
+#                       grep('4th', d2$time_frame),
+#                       grep('BOOST',toupper(d2$time_frame )),
+#                       grep('VACCINATION 4',toupper(d2$time_frame ))
+#                       )] <- 'post_boost' 
+# d2$dose_descr[is.na(d2$time_since_vax_m)] <- NA #for 1 year post-dose
+# d2$dose_descr[grepl('Adult', d2$standard_age_list) & !grepl('Child', d2$standard_age_list) & 
+#                                             (grepl('VACCINATION 1',toupper(d2$time_frame ))|
+#                                                       grepl('VAX 1',toupper(d2$time_frame )) |
+#                                                       grepl('DAY 30',toupper(d2$time_frame ))       ) ] <- 
+#                                                                 'Adult dose 1' #for 1 year post-dose
+# 
+# d2 <- d2[!is.na(d2$dose_descr),] ##!!!!!!CAREFUL--DOSE_DESCR IS MISSING RIGHT NOW FOR MANY
 
 d2$dose_descr <- as.factor(d2$dose_descr)
 
-table(d2$dose_descr)
-table(d2$time_frame[is.na(d2$dose_descr)])
+# table(d2$dose_descr)
+# table(d2$time_frame[is.na(d2$dose_descr)])
 
 #check for duplicates
 # 
