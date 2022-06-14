@@ -1,5 +1,3 @@
-#TODO : COMPARISON AND REF VACCINES NEED TO BE REACTIVE TO WHAT IS SELECTED ON vax input
-
 library(shiny)
 library(readxl)
 library(reshape2)
@@ -72,11 +70,8 @@ shinyApp(
                       uiOutput("schedule"),
                       selectInput("phase", "Trial Phase:",
                                   unique(d2$phase), selected=c("Phase 3")),
-                      selectInput("ref_vax", "Reference vaccine:",
-                                  unique(d2$vaccine), multiple=F, selected='PCV10 (Synflorix)'),
-                      selectInput("comp_vax", "Comparator vaccine",
-
-                                  unique(d2$vaccine), multiple=F, selected='PCV10 (Pneumosil)'),
+                      uiOutput("ref_vax"),
+                      uiOutput("comp_vax"),
                       selectInput("study_id", "Trial:",
                                   unique(d2$study_id), selected=unique(d2$study_id), multiple=T)
                       
@@ -104,7 +99,6 @@ shinyApp(
   )
   ,
   
-  
   server = function(input, output) {
     
     output$schedule <- renderUI({
@@ -114,6 +108,7 @@ shinyApp(
         selectInput("schedule", "Schedule:", choices = unique(d2$schedule)[grep('adult', unique(d2$schedule))]  )
       }
     })
+    
     output$dose_description <- renderUI({
       if(grep('Child', input$age)){
         selectInput("dose_description", "Dose number and timing:", choices = unique(d2$dose_description)[grep('child', unique(d2$dose_description))]  )
@@ -122,6 +117,16 @@ shinyApp(
       }
     })
     
+    output$ref_vax <-renderUI({
+      selectInput("ref_vax", "Reference vaccine:",
+                  input$vax, multiple=F, selected=input$vax[1])    
+      })
+    
+    output$comp_vax <-renderUI({
+      selectInput("comp_vax", "Comparator vaccine",
+                  input$vax, multiple=F, selected=input$vax[2])   
+    })
+      
     #add to UI: uiOutput("secondSelection")
     
     output$plot_gmc = renderPlotly({
