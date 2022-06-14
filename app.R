@@ -146,6 +146,7 @@ shinyApp(
                         d2$standard_age_list %in% input$age  &
                         d2$phase %in% input$phase)   ,]
         
+     
       #  plot.ds$study_id <- factor(plot.ds$study_id)
         
         p1 <-   ggplotly(
