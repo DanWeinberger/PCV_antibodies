@@ -1,3 +1,5 @@
+#TODO: different shapes for differentschedules
+#Change the mouse over information
 library(shiny)
 library(readxl)
 library(reshape2)
@@ -183,7 +185,7 @@ shinyApp(
       #  plot.ds$study_id <- factor(plot.ds$study_id)
         
         p1 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=log(value),  col=vax, group=vax) ) +
+          ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=round(log(value),2),  col=vax, group=study_id, text=dose_description) ) +
           geom_point() +
           ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -213,7 +215,7 @@ shinyApp(
       plot.ds$study_id <- factor(plot.ds$study_id)
       
       p2 <-   ggplotly(
-        ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+        ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=round(log(value),2), group=vax, col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -238,7 +240,7 @@ shinyApp(
                     ,]
         plot.ds$study_id <- factor(plot.ds$study_id)
       
-        plot.ds.c <- reshape2::dcast(plot.ds, dose_description+study_id+serotype +assay~vaccine, value.var='value')
+        plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
         
         vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
         
@@ -253,7 +255,7 @@ shinyApp(
         
         plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='GMC',]
         
-        plot.df$study_id <- as.numeric( as.factor(plot.df$study_id))
+        plot.df$study_id <-  as.factor(plot.df$study_id)
         
         plot.df <- plot.df[!is.na(plot.df$value),]
         
@@ -268,8 +270,8 @@ shinyApp(
         )
         
                 p2 <- ggplotly(
-          ggplot(plot.df, aes(y=study_id, x=(value), col=serotype ) ) +
-            geom_point() +
+          ggplot(plot.df, aes(y=study_id, x=round(value,2), col=serotype ) ) +
+            geom_point(aes(shape=dose_description)) +
             theme_classic()+
             ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
             ylab('Study') +
