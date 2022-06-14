@@ -1,3 +1,5 @@
+#TODO : COMPARISON AND REF VACCINES NEED TO BE REACTIVE TO WHAT IS SELECTED ON vax input
+
 library(shiny)
 library(readxl)
 library(reshape2)
@@ -9,6 +11,7 @@ library(ggsci)
 library(shinydashboard)
 library(dplyr)
 
+#https://stackoverflow.com/questions/34929206/selectinput-that-is-dependent-on-another-selectinput
 
 
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
@@ -19,10 +22,11 @@ names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
 
-d1$Trial <- as.numeric(as.factor(d1$study_name))
+d1$study_id <- as.factor(d1$study_id)
 
-keep.vars <- c('vaccine','dose_number','Trial','location_continent',
-               'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks')
+
+keep.vars <- c('vaccine','dose_number','study_id','location_continent',
+               'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks', 'dose_description','schedule')
 
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
@@ -32,15 +36,20 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
                                       "PCV13",
                                       'PCV15',
                                       'PCV20'))
-d2 <- d2 %>%
-  group_by(Trial) %>%
-  mutate(total_doses=max(dose_number) ,Dose=paste0(dose_number,'/',total_doses) )
 
+d2$serotype <- as.factor(d2$serotype)
+
+d2$assay[d2$assay=='IgG'] <- 'GMC'
+
+
+# table(d2$dose_descr)
+# table(d2$time_frame[is.na(d2$dose_descr)])
 
 #check for duplicates
 # 
 # dups <- d1%>%
-#   group_by(Trial, dose_number, time_frame_weeks,vaccine, standard_age_list, assay, serotype) %>%
+
+#   group_by(study_id, dose_number, time_frame_weeks,vaccine, standard_age_list, assay, serotype) %>%
 #   mutate(n_obs=n())
 
 
@@ -54,23 +63,22 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
-
-                                  unique(d2$vaccine), multiple=T, selected=unique(d2$vax)),
+                                  unique(d2$vaccine), multiple=T, selected=unique(d2$vaccine)),
                       selectInput("st", "Serotypes:",multiple=T,
                                   unique(d2$serotype),  selected=c('4','14','19F','23F')),
-                      selectInput("doses", "Doses:",
-                                         unique(d2$Dose), selected=c("2/3"), multiple=T),
                       selectInput("age", "Age group:",
                                   unique(d2$standard_age_list), selected=c("[\"Child\"]")),
+                      uiOutput("dose_description"),
+                      uiOutput("schedule"),
                       selectInput("phase", "Trial Phase:",
                                   unique(d2$phase), selected=c("Phase 3")),
                       selectInput("ref_vax", "Reference vaccine:",
-                                  unique(d2$vax), multiple=F, selected='PCV10 (Synflorix)'),
+                                  unique(d2$vaccine), multiple=F, selected='PCV10 (Synflorix)'),
                       selectInput("comp_vax", "Comparator vaccine",
 
-                                  unique(d2$vax), multiple=F, selected='PCV10 (Pneumosil)'),
-                      selectInput("Trial", "Trial:",
-                                  unique(d2$Trial), selected=unique(d2$Trial), multiple=T)
+                                  unique(d2$vaccine), multiple=F, selected='PCV10 (Pneumosil)'),
+                      selectInput("study_id", "Trial:",
+                                  unique(d2$study_id), selected=unique(d2$study_id), multiple=T)
                       
                       ),
     dashboardBody(
@@ -98,24 +106,43 @@ shinyApp(
   
   
   server = function(input, output) {
+    
+    output$schedule <- renderUI({
+      if(grep('Child', input$age)){
+        selectInput("schedule", "Schedule:", choices = unique(d2$schedule)[grep('child', unique(d2$schedule))]  )
+      }else if(grep('Adult', input$age)){
+        selectInput("schedule", "Schedule:", choices = unique(d2$schedule)[grep('adult', unique(d2$schedule))]  )
+      }
+    })
+    output$dose_description <- renderUI({
+      if(grep('Child', input$age)){
+        selectInput("dose_description", "Dose number and timing:", choices = unique(d2$dose_description)[grep('child', unique(d2$dose_description))]  )
+      }else if(grep('Adult', input$age)){
+        selectInput("dose_description", "Dose number and timing:", choices = unique(d2$dose_description)[grep('adult', unique(d2$dose_description))]  )
+      }
+    })
+    
+    #add to UI: uiOutput("secondSelection")
+    
     output$plot_gmc = renderPlotly({
       
         plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                         d2$Dose %in% input$doses & 
+                         d2$dose_description %in% input$doses & 
                          d2$serotype %in% input$st &
-                         d2$Trial %in% input$Trial  &
+                         d2$study_id %in% input$study_id  &
                         d2$standard_age_list %in% input$age  &
-                        d2$phase %in% input$phase)
-                        ,]
+                        d2$phase %in% input$phase)   ,]
+        
+        plot.ds$study_id <- factor(plot.ds$study_id)
         
         p1 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='IgG',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
+          ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=log(value),  col=vax, group=vax) ) +
           geom_point() +
           ggtitle("Antibody concentration (GMC) by product") +
-          geom_line(aes(group = Trial),color="grey") +
+          geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
           ylab('log(GMC)') +
-          facet_grid(Dose~serotype ) +
+          facet_grid(dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
         )
@@ -127,22 +154,24 @@ shinyApp(
     output$plot_opa = renderPlotly({
       
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$Dose %in% input$doses & 
+                       d2$dose_description %in% input$doses & 
                        d2$serotype %in% input$st &
-                       d2$Trial %in% input$Trial  &
+                       d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$age  &
                        d2$phase %in% input$phase) 
                       
                     ,]
       
+      plot.ds$study_id <- factor(plot.ds$study_id)
+      
       p2 <-   ggplotly(
         ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=log(value), group=vax, col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
-          geom_line(aes(group = Trial),color="grey") +
+          geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
-          ylab('log(GMC)') +
-          facet_grid( ~serotype ) +
+          ylab('log(OPA GMT)') +
+          facet_grid( dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
       )
@@ -152,13 +181,15 @@ shinyApp(
   
     output$plot_ratio = renderPlotly({
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$Dose %in% input$doses & 
+                       d2$dose_description %in% input$doses & 
                        d2$serotype %in% input$st &
-                       d2$Trial %in% input$Trial  &
+                       d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$age  &
                        d2$phase %in% input$phase)
                     ,]
-        plot.ds.c <- reshape2::dcast(plot.ds, Dose+Trial+serotype +assay~vaccine, value.var='value')
+        plot.ds$study_id <- factor(plot.ds$study_id)
+      
+        plot.ds.c <- reshape2::dcast(plot.ds, dose_description+study_id+serotype +assay~vaccine, value.var='value')
         
         vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
         
@@ -168,12 +199,12 @@ shinyApp(
         
         # names(vax.dat.ratio) <- paste0('Numerator ', names(vax.dat.ratio))
         
-        plot.ds.c2 <- cbind.data.frame(plot.ds.c[c('Dose','Trial','serotype','assay')],vax.dat.ratio)
-        plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('Dose','Trial','serotype','assay'))
+        plot.ds.c2 <- cbind.data.frame(plot.ds.c[c('dose_description','study_id','serotype','assay')],vax.dat.ratio)
+        plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('dose_description','study_id','serotype','assay'))
         
-        plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='IgG',]
+        plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='GMC',]
         
-        plot.df$Trial <- as.numeric( as.factor(plot.df$Trial))
+        plot.df$study_id <- as.numeric( as.factor(plot.df$study_id))
         
         plot.df <- plot.df[!is.na(plot.df$value),]
         
@@ -188,7 +219,7 @@ shinyApp(
         )
         
                 p2 <- ggplotly(
-          ggplot(plot.df, aes(y=Trial, x=(value), col=serotype ) ) +
+          ggplot(plot.df, aes(y=study_id, x=(value), col=serotype ) ) +
             geom_point() +
             theme_classic()+
             ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
