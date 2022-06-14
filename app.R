@@ -39,13 +39,12 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
 
+d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
 schedule.list <- list(adult.schedules,pediatric.schedules)
 
-adult.dose.descr <-  unique(d2$dose_description)[grep('adult', unique(d2$dose_description))]
-pediatric.dose.descr <-  unique(d2$dose_description)[grep('child', unique(d2$dose_description))]
-dose_descr_list <- list(adult.dose.descr,pediatric.dose.descr)
+
 # table(d2$dose_descr)
 # table(d2$time_frame[is.na(d2$dose_descr)])
 
@@ -67,13 +66,16 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
-                                  unique(d2$vaccine), multiple=T, selected=unique(d2$vaccine)),
+                                  unique(d2$vaccine), multiple=T, selected=c('PCV7',"PCV10 (Pneumosil)","PCV10 (Synflorix)", 'PCV13','PCV15','PCV20')),
                       selectInput("st", "Serotypes:",multiple=T,
                                   unique(d2$serotype),  selected=c('4','14','19F','23F')),
-                      selectInput("age", "Age group:",
+                      selectizeInput("age", "Age group:",
                                   unique(d2$standard_age_list), selected=c("[\"Child\"]")),
-                      uiOutput("dose_description"),
+                      #selectInput('schedule', 'Schedule:', ""),
+                      #selectInput('dose_description', 'Dose number and timing:', ""),
                       uiOutput("schedule"),
+                      uiOutput("dose_description"),
+                      
                       selectInput("phase", "Trial Phase:",
                                   unique(d2$phase), selected=c("Phase 3")),
                       uiOutput("ref_vax"),
@@ -104,25 +106,57 @@ shinyApp(
   )
   ,
   
-  server = function(input, output) {
+  server = function(input, output,session) {
     
+
     output$schedule <- renderUI({
-        selectInput("schedule", "Schedule:", choices =schedule.list[[(grep('Child', input$age)+1)]], selected=schedule.list[[(grep('Child', input$age)+1)]][1] )
+      
+      if(any(grep('Child', input$age))){
+        sched.options<-unique(d2$schedule)[grep('child',unique(d2$schedule))]
+      }else{
+        sched.options<- unique(d2$schedule)[grep('adult',unique(d2$schedule))]
+      }
+      selectizeInput(
+        inputId = 'schedule',
+        label = 'Schedule:',
+        choices = sched.options,
+        multiple = TRUE,
+        selected = sched.options[1])
     })
     
     output$dose_description <- renderUI({
-        selectInput("dose_description", "Dose number and timing:", choices =dose_descr_list[[(grep('Child', input$age)+1)]]  ,selected=dose_descr_list[[(grep('Child', input$age)+1)]][1], multiple=T )
-  
-    })
+      if(any(grep('Child', input$age))){
+       dose.options <- unique(d2$dose_description)[grep('child',unique(d2$dose_description))]
+      }else{
+        dose.options <- unique(d2$dose_description)[grep('adult',unique(d2$dose_description))]
+      }
+      selectizeInput(
+        inputId = 'dose_description',
+        label = 'Doses received and timing:',
+        choices = dose.options,
+        multiple = TRUE,
+        selected = dose.options[1])
+      })
+    
+
     
     output$ref_vax <-renderUI({
+      plot.ds <- d2[(d2$vaccine %in% input$vax & 
+                       d2$dose_description %in% input$dose_description & 
+                       d2$standard_age_list %in% input$age  &
+                       d2$phase %in% input$phase)   ,]
+      
       selectInput("ref_vax", "Reference vaccine:",
-                  input$vax, multiple=F, selected=input$vax[1])    
+                  input$vax, multiple=F, selected=unique(plot.ds$vaccine)[1])    
       })
     
     output$comp_vax <-renderUI({
+      plot.ds <- d2[(d2$vaccine %in% input$vax & 
+                       d2$dose_description %in% input$dose_description & 
+                       d2$standard_age_list %in% input$age  &
+                       d2$phase %in% input$phase)   ,]
       selectInput("comp_vax", "Comparator vaccine",
-                  input$vax, multiple=F, selected=input$vax[2])   
+                  input$vax, multiple=F, selected=unique(plot.ds$vaccine)[2])   
     })
     
     output$study_id <-renderUI({
