@@ -1,5 +1,5 @@
-#TODO: different shapes for differentschedules
-#Change the mouse over information
+#TODO: STOP temporary error message
+
 library(shiny)
 library(readxl)
 library(reshape2)
