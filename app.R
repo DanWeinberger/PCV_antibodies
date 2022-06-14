@@ -35,7 +35,7 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
                                       'PCV15',
                                       'PCV20'))
 
-d2$serotype <- as.factor(d2$serotype)
+#d2$serotype <- as.factor(d2$serotype)
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
 
@@ -72,8 +72,7 @@ shinyApp(
                                   unique(d2$phase), selected=c("Phase 3")),
                       uiOutput("ref_vax"),
                       uiOutput("comp_vax"),
-                      selectInput("study_id", "Trial:",
-                                  unique(d2$study_id), selected=unique(d2$study_id), multiple=T)
+                      uiOutput("study_id")
                       
                       ),
     dashboardBody(
@@ -126,19 +125,28 @@ shinyApp(
       selectInput("comp_vax", "Comparator vaccine",
                   input$vax, multiple=F, selected=input$vax[2])   
     })
+    
+    output$study_id <-renderUI({
+      plot.ds <- d2[(d2$vaccine %in% input$vax & 
+                       d2$dose_description %in% input$dose_description & 
+                       d2$standard_age_list %in% input$age  &
+                       d2$phase %in% input$phase)   ,]
+      selectInput("study_id", "Trial:",
+                  unique(plot.ds$study_id), selected=unique(plot.ds$study_id), multiple=T)
+    })
       
     #add to UI: uiOutput("secondSelection")
     
     output$plot_gmc = renderPlotly({
       
         plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                         d2$dose_description %in% input$doses & 
+                         d2$dose_description %in% input$dose_description & 
                          d2$serotype %in% input$st &
                          d2$study_id %in% input$study_id  &
                         d2$standard_age_list %in% input$age  &
                         d2$phase %in% input$phase)   ,]
         
-        plot.ds$study_id <- factor(plot.ds$study_id)
+      #  plot.ds$study_id <- factor(plot.ds$study_id)
         
         p1 <-   ggplotly(
           ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=log(value),  col=vax, group=vax) ) +
@@ -147,6 +155,7 @@ shinyApp(
           geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
           ylab('log(GMC)') +
+          ylim(-2,4) +
           facet_grid(dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
@@ -159,7 +168,7 @@ shinyApp(
     output$plot_opa = renderPlotly({
       
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$dose_description %in% input$doses & 
+                       d2$dose_description %in% input$dose_description & 
                        d2$serotype %in% input$st &
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$age  &
@@ -176,6 +185,7 @@ shinyApp(
           geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
           ylab('log(OPA GMT)') +
+          ylim(0,11)+
           facet_grid( dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
@@ -186,7 +196,7 @@ shinyApp(
   
     output$plot_ratio = renderPlotly({
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$dose_description %in% input$doses & 
+                       d2$dose_description %in% input$dose_description & 
                        d2$serotype %in% input$st &
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$age  &
