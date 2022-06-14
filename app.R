@@ -39,7 +39,13 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
 
+pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
+adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
+schedule.list <- list(adult.schedules,pediatric.schedules)
 
+adult.dose.descr <-  unique(d2$dose_description)[grep('adult', unique(d2$dose_description))]
+pediatric.dose.descr <-  unique(d2$dose_description)[grep('child', unique(d2$dose_description))]
+dose_descr_list <- list(adult.dose.descr,pediatric.dose.descr)
 # table(d2$dose_descr)
 # table(d2$time_frame[is.na(d2$dose_descr)])
 
@@ -101,19 +107,12 @@ shinyApp(
   server = function(input, output) {
     
     output$schedule <- renderUI({
-      if(grep('Child', input$age)){
-        selectInput("schedule", "Schedule:", choices = unique(d2$schedule)[grep('child', unique(d2$schedule))]  )
-      }else if(grep('Adult', input$age)){
-        selectInput("schedule", "Schedule:", choices = unique(d2$schedule)[grep('adult', unique(d2$schedule))]  )
-      }
+        selectInput("schedule", "Schedule:", choices =schedule.list[[(grep('Child', input$age)+1)]], selected=schedule.list[[(grep('Child', input$age)+1)]][1] )
     })
     
     output$dose_description <- renderUI({
-      if(grep('Child', input$age)){
-        selectInput("dose_description", "Dose number and timing:", choices = unique(d2$dose_description)[grep('child', unique(d2$dose_description))]  )
-      }else if(grep('Adult', input$age)){
-        selectInput("dose_description", "Dose number and timing:", choices = unique(d2$dose_description)[grep('adult', unique(d2$dose_description))]  )
-      }
+        selectInput("dose_description", "Dose number and timing:", choices =dose_descr_list[[(grep('Child', input$age)+1)]]  ,selected=dose_descr_list[[(grep('Child', input$age)+1)]][1], multiple=T )
+  
     })
     
     output$ref_vax <-renderUI({
