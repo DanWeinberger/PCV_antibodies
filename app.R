@@ -136,7 +136,7 @@ shinyApp(
        dose.default.select <- default.dose.options[grep('child',default.dose.options)]
       }else{
         dose.options <- unique(d2$dose_description)[grep('adult',unique(d2$dose_description))]
-        dose.default.select <- default.dose.options[grep('child',default.dose.options)]
+        dose.default.select <- default.dose.options[grep('adult',default.dose.options)]
 
       }
       selectizeInput(
@@ -189,9 +189,12 @@ shinyApp(
     })
     
     output$plot_gmc = renderPlotly({
-      if(input$comp_vax !=""){
-        p1 <-   ggplotly(
-          ggplot(plot.ds.gmc(), aes(x=vax, y=LogResponse,  col=vax, group=study_id, text=dose_description) ) +
+      if(is.null(input$dose_description)){
+        p1 <- ggplot()
+        ggplotly(p1)
+        
+      }else{
+        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=LogResponse,  col=vax, group=study_id, text=dose_description) ) +
           geom_point() +
           ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -201,16 +204,17 @@ shinyApp(
           facet_grid(dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
-        )
-      }else{
-        return('Waiting')
+        ggplotly(p1)
       }
     })
     
     #OPA
 
     output$plot_opa = renderPlotly({
-      
+      if(is.null(input$dose_description)){
+        p2 <- ggplot()
+        ggplotly(p2)
+      }else{
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
                        d2$dose_description %in% input$dose_description & 
                        d2$serotype %in% input$st &
@@ -234,11 +238,17 @@ shinyApp(
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
       )
+      } 
       
     })
     
   
     output$plot_ratio = renderPlotly({
+      if(is.null(input$dose_description)){
+        p1 <- ggplot()
+        ggplotly(p1)
+        
+      }else{
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
                        d2$dose_description %in% input$dose_description & 
                        d2$serotype %in% input$st &
@@ -311,6 +321,7 @@ shinyApp(
                   axis.text.y=element_blank(),
                   axis.ticks.y=element_blank())
         )
+      }
       })
   }
 )
