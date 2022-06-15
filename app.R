@@ -22,6 +22,8 @@ names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
 
+##TEMPORARY LINE--REMOVE THIS WHEN STUDY ID  FIELD IS FIXED
+d1$study_id <- d1$study_name
 d1$study_id <- as.factor(d1$study_id)
 
 
