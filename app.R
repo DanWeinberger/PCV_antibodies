@@ -22,10 +22,6 @@ names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
 
-##TEMPORARY LINE--REMOVE THIS WHEN STUDY ID  FIELD IS FIXED
-d1$study_id <- d1$study_name
-d1$study_id <- as.factor(d1$study_id)
-
 
 keep.vars <- c('vaccine','dose_number','study_id','location_continent',
                'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks', 'dose_description','schedule')
@@ -96,13 +92,16 @@ shinyApp(
           title = "",
           id = "tabset1", height = "auto", width=12,
           tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc") ),
-          tabPanel("Activity (OPA)", plotlyOutput("plot_opa"))
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
+          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F))
+          
+          
         )),
         fluidRow(
           
-        box(
-          tabPanel("Ratio", plotlyOutput("plot_ratio",height='600px' , inline=F)),height='600px', width=12
-        ), 
+        # box(
+        #   tabPanel("Ratio", plotlyOutput("plot_ratio",height='600px' , inline=F)),height='600px', width=12
+        # ), 
 
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
         
