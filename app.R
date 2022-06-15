@@ -44,10 +44,13 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
 d2$assay[d2$assay=='IgG'] <- 'GMC'
 
 d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
+d2$LogResponse= round(log(d2$value),2)
+
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
 schedule.list <- list(adult.schedules,pediatric.schedules)
 
+default.dose.options <- c('1m post primary child' ,'1m post dose 1 adult')
 
 # table(d2$dose_descr)
 # table(d2$time_frame[is.na(d2$dose_descr)])
@@ -75,8 +78,7 @@ shinyApp(
                                   unique(d2$serotype),  selected=c('4','14','19F','23F')),
                       selectizeInput("age", "Age group:",
                                   unique(d2$standard_age_list), selected=c("[\"Child\"]")),
-                      #selectInput('schedule', 'Schedule:', ""),
-                      #selectInput('dose_description', 'Dose number and timing:', ""),
+                   
                       uiOutput("schedule"),
                       uiOutput("dose_description"),
                       
@@ -131,15 +133,18 @@ shinyApp(
     output$dose_description <- renderUI({
       if(any(grep('Child', input$age))){
        dose.options <- unique(d2$dose_description)[grep('child',unique(d2$dose_description))]
+       dose.default.select <- default.dose.options[grep('child',default.dose.options)]
       }else{
         dose.options <- unique(d2$dose_description)[grep('adult',unique(d2$dose_description))]
+        dose.default.select <- default.dose.options[grep('child',default.dose.options)]
+
       }
       selectizeInput(
         inputId = 'dose_description',
         label = 'Doses received and timing:',
         choices = dose.options,
         multiple = TRUE,
-        selected = dose.options[1])
+        selected = dose.default.select) #'1m post primary child' ,'1m post dose 1 adult'
       })
     
 
@@ -149,9 +154,8 @@ shinyApp(
                        d2$dose_description %in% input$dose_description & 
                        d2$standard_age_list %in% input$age  &
                        d2$phase %in% input$phase)   ,]
-      
-      selectInput("ref_vax", "Reference vaccine:",
-                  input$vax, multiple=F, selected=unique(plot.ds$vaccine)[1])    
+        selectInput("ref_vax", "Reference vaccine:",
+                  input$vax, multiple=F, selected='PCV7')    
       })
     
     output$comp_vax <-renderUI({
@@ -160,7 +164,7 @@ shinyApp(
                        d2$standard_age_list %in% input$age  &
                        d2$phase %in% input$phase)   ,]
       selectInput("comp_vax", "Comparator vaccine",
-                  input$vax, multiple=F, selected=unique(plot.ds$vaccine)[2])   
+                  input$vax, multiple=F, selected='PCV13')   
     })
     
     output$study_id <-renderUI({
@@ -174,20 +178,20 @@ shinyApp(
       
     #add to UI: uiOutput("secondSelection")
     
+    plot.ds.gmc <- reactive({
+   
+      d2[(d2$vaccine %in% input$vax & 
+            d2$dose_description %in% input$dose_description & 
+            d2$standard_age_list %in% input$age  &
+            d2$phase %in% input$phase)   &
+           d2$serotype %in% input$st &
+           d2$assay=='GMC',]
+    })
+    
     output$plot_gmc = renderPlotly({
-      
-        plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                         d2$dose_description %in% input$dose_description & 
-                         d2$serotype %in% input$st &
-                         d2$study_id %in% input$study_id  &
-                        d2$standard_age_list %in% input$age  &
-                        d2$phase %in% input$phase)   ,]
-        
-     
-      #  plot.ds$study_id <- factor(plot.ds$study_id)
-        
+      if(input$comp_vax !=""){
         p1 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='GMC',], aes(x=vax, y=round(log(value),2),  col=vax, group=study_id, text=dose_description) ) +
+          ggplot(plot.ds.gmc(), aes(x=vax, y=LogResponse,  col=vax, group=study_id, text=dose_description) ) +
           geom_point() +
           ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -198,7 +202,9 @@ shinyApp(
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
         )
-
+      }else{
+        return('Waiting')
+      }
     })
     
     #OPA
@@ -217,7 +223,7 @@ shinyApp(
       plot.ds$study_id <- factor(plot.ds$study_id)
       
       p2 <-   ggplotly(
-        ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=round(log(value),2), group=vax, col=vax) ) +
+        ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=LogResponse, group=vax, col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -260,6 +266,7 @@ shinyApp(
         plot.df$study_id <-  as.factor(plot.df$study_id)
         
         plot.df <- plot.df[!is.na(plot.df$value),]
+        plot.df$LogRatio <- round(plot.df$value,2)
         
         dat_text <- data.frame(
           label = c(rep('', length( unique(plot.df$serotype))-1) ,   paste0("Higher immunogenicity for ",  input$comp_vax)),
@@ -272,7 +279,7 @@ shinyApp(
         )
         
                 p2 <- ggplotly(
-          ggplot(plot.df, aes(y=study_id, x=round(value,2), col=serotype ) ) +
+          ggplot(plot.df, aes(y=study_id, x=LogRatio, col=serotype ) ) +
             geom_point(aes(shape=dose_description)) +
             theme_classic()+
             ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
