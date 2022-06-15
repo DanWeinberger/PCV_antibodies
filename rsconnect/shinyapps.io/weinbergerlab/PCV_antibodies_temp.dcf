@@ -1,0 +1,13 @@
+name: PCV_antibodies_temp
+title: PCV_antibodies_temp
+username:
+account: weinbergerlab
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6490052
+bundleId: 6007997
+url: https://weinbergerlab.shinyapps.io/PCV_antibodies_temp/
+when: 1655240847.47292
+lastSyncTime: 1655240847.47292
+asMultiple: FALSE
+asStatic: FALSE
