@@ -26,6 +26,7 @@ names(d1) <- gsub('clinical_trial_','',names(d1))
 keep.vars <- c('vaccine','dose_number','study_id','location_continent',
                'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks', 'dose_description','schedule')
 
+
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
 
@@ -99,10 +100,6 @@ shinyApp(
         )),
         fluidRow(
           
-        # box(
-        #   tabPanel("Ratio", plotlyOutput("plot_ratio",height='600px' , inline=F)),height='600px', width=12
-        # ), 
-
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
         
         ),
