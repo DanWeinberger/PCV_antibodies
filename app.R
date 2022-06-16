@@ -18,6 +18,10 @@ pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 #d1a <- read_excel("./Data/IgGGMCs2.xlsx")
 d1 <- read.csv("./Data/wisspar_export.csv")
 
+
+#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
+#write.csv(d1,"./Data/wisspar_export.csv")
+
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
