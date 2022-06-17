@@ -16,7 +16,7 @@ library(dplyr)
 
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 #d1a <- read_excel("./Data/IgGGMCs2.xlsx")
-d1 <- read.csv("./Data/wisspar_export.csv")
+d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
 
 #d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
@@ -28,7 +28,7 @@ names(d1) <- gsub('clinical_trial_','',names(d1))
 
 
 keep.vars <- c('vaccine','dose_number','study_id','location_continent',
-               'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks', 'dose_description','schedule')
+               'time_frame','standard_age_list','phase','assay','serotype','time_frame_weeks', 'dose_description','schedule','upper_limit','lower_limit')
 
 
 d2 <- d1 %>% 
@@ -199,10 +199,12 @@ shinyApp(
       }else{
         p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=LogResponse,  col=vax, group=study_id, text=dose_description) ) +
           geom_point() +
+          geom_errorbar(data=plot.ds.gmc(), aes(ymin=log(lower_limit), ymax=log(upper_limit), color=vax, width=0)) +
           ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
           ylab('log(GMC)') +
+          geom_hline(yintercept=log(0.35), lty=2, col='gray')+
           ylim(-2,4) +
           facet_grid(dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
