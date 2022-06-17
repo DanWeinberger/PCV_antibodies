@@ -34,11 +34,10 @@ keep.vars <- c('vaccine','dose_number','study_id','location_continent',
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
 
-d2$vax <- factor(d2$vaccine, levels=c('PCV7',"PCV10 (Synflorix)",
+d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
+                                      'PCV15',"PCV10 (Synflorix)",
                                       "PCV10 (Pneumosil)",
-                                      "PCV13",
-                                      'PCV15',
-                                      'PCV20'))
+                                     'PCV20'))
 
 #d2$serotype <- as.factor(d2$serotype)
 
@@ -189,7 +188,11 @@ shinyApp(
     })
     
     output$plot_gmc = renderPlotly({
+      validate(
+        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+      )
       if(is.null(input$dose_description)){
+        
         p1 <- ggplot()
         ggplotly(p1)
         
@@ -211,6 +214,9 @@ shinyApp(
     #OPA
 
     output$plot_opa = renderPlotly({
+      validate(
+        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+      )
       if(is.null(input$dose_description)){
         p2 <- ggplot()
         ggplotly(p2)
@@ -227,7 +233,7 @@ shinyApp(
       plot.ds$study_id <- factor(plot.ds$study_id)
       
       p2 <-   ggplotly(
-        ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=LogResponse, group=vax, col=vax) ) +
+          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=LogResponse, group=vax, col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_id),color="grey") +
@@ -244,6 +250,9 @@ shinyApp(
     
   
     output$plot_ratio = renderPlotly({
+      validate(
+        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+      )
       if(is.null(input$dose_description)){
         p1 <- ggplot()
         ggplotly(p1)
