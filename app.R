@@ -10,6 +10,9 @@ library(grid)
 library(ggsci)
 library(shinydashboard)
 library(dplyr)
+library(scales)
+
+scaleFUN <- function(x) sprintf("%.2f", x)
 
 #https://stackoverflow.com/questions/34929206/selectinput-that-is-dependent-on-another-selectinput
 
@@ -45,6 +48,7 @@ d2$assay[d2$assay=='IgG'] <- 'GMC'
 
 d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
 d2$LogResponse= round(log(d2$value),2)
+d2$Response= round((d2$value),2)
 
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
@@ -75,7 +79,7 @@ shinyApp(
     dashboardSidebar( selectInput("vax", "Vaccine:",
                                   unique(d2$vaccine), multiple=T, selected=c('PCV7',"PCV10 (Pneumosil)","PCV10 (Synflorix)", 'PCV13','PCV15','PCV20')),
                       selectInput("st", "Serotypes:",multiple=T,
-                                  unique(d2$serotype),  selected=c('4','14','19F','23F')),
+                                  unique(d2$serotype),  selected=c('4','6A','14','19F')),
                       selectizeInput("age", "Age group:",
                                   unique(d2$standard_age_list), selected=c("[\"Child\"]")),
                    
@@ -197,15 +201,17 @@ shinyApp(
         ggplotly(p1)
         
       }else{
-        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=LogResponse,  col=vax, group=study_id, text=dose_description) ) +
+        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,  col=vax, group=study_id, text=dose_description))  +
           geom_point() +
-          geom_errorbar(data=plot.ds.gmc(), aes(ymin=log(lower_limit), ymax=log(upper_limit), color=vax, width=0)) +
+          scale_y_continuous(
+            trans = "log",labels=scaleFUN) +
+          geom_errorbar(data=plot.ds.gmc(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
           ggtitle("Antibody concentration (GMC) by product") +
           geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
-          ylab('log(GMC)') +
-          geom_hline(yintercept=log(0.35), lty=2, col='gray')+
-          ylim(-2,4) +
+          ylab('GMC') +
+          geom_hline(yintercept=(0.35), lty=2, col='gray')+
+         # ylim(0,NA) +
           facet_grid(dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
@@ -235,14 +241,15 @@ shinyApp(
       plot.ds$study_id <- factor(plot.ds$study_id)
       
       p2 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=LogResponse, group=vax, col=vax) ) +
+          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=vax, col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_id),color="grey") +
           theme_classic()+
-          ylab('log(OPA GMT)') +
-          ylim(0,11)+
-          facet_grid( dose_description~serotype ) +
+          ylab('OPA GMT') +
+            scale_y_continuous(
+              trans = "log",labels=scaleFUN) +
+            facet_grid( dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
       )
@@ -287,7 +294,7 @@ shinyApp(
         plot.df$study_id <-  as.factor(plot.df$study_id)
         
         plot.df <- plot.df[!is.na(plot.df$value),]
-        plot.df$LogRatio <- round(plot.df$value,2)
+        plot.df$Ratio <- round(plot.df$value,2)
         
         dat_text <- data.frame(
           label = c(rep('', length( unique(plot.df$serotype))-1) ,   paste0("Higher immunogenicity for ",  input$comp_vax)),
@@ -300,9 +307,11 @@ shinyApp(
         )
         
                 p2 <- ggplotly(
-          ggplot(plot.df, aes(y=study_id, x=LogRatio, col=serotype ) ) +
+          ggplot(plot.df, aes(y=study_id, x=Ratio, col=serotype ) ) +
             geom_point(aes(shape=dose_description)) +
             theme_classic()+
+          #  scale_x_continuous(
+             # trans = "log",labels=scaleFUN) +
             ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
             ylab('Study') +
             xlab('Ratio of Immunogenicity')+
