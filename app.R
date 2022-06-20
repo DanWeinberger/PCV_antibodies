@@ -262,7 +262,7 @@ shinyApp(
       plot.ds$study_id <- factor(plot.ds$study_id)
       
       p2 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=vax, col=vax,shape=sponsor) ) +
+          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=study_age, col=vax,shape=sponsor) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_age),color="grey") +
