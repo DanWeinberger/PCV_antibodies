@@ -103,16 +103,19 @@ shinyApp(
         tabBox(
           title = "",
           id = "tabset1", height = "auto", width=12,
-          tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc") ),
-          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
-          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F))
-          
+          tabPanel("Concentration (GMC)", plotOutput("plot_gmc") ),
+          tabPanel("Activity (OPA)", plotOutput("plot_opa")),
+          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
+          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
           
         )),
         fluidRow(
           
-        infoBox("Important information", "Data on immunogenicity alone cannot be used to infer differences in effectiveness between vaccines. These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in different populations for meaningful comparisons. Caution should be used when comparing
-                data from trials conducted by different sponsors, which might use differents assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
+        infoBox("Important information", "Data on immunogenicity alone cannot be used to infer 
+        differences in effectiveness between vaccines. 
+        These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in 
+        different populations for meaningful comparisons. Caution should be used when comparing
+                data from trials conducted by different sponsors, which might use differents assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
         
         ),
 
@@ -211,44 +214,50 @@ shinyApp(
            d2$assay=='GMC',]
       })
     
-    output$plot_gmc = renderPlotly({
+    output$plot_gmc = renderPlot({
       validate(
         need(nrow(plot.ds.gmc()) > 0, message = FALSE)
       )
       if(is.null(input$dose_description)){
         
         p1 <- ggplot()
-        ggplotly(p1)
+        p1
+        #ggplotly(p1)
         
       }else{
-        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,   group=study_id, text=dose_description,shape=sponsor,col=vax))  +
+        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,  
+                                          text=dose_description,
+                                          shape=sponsor,
+                                          col=vax))  +
           geom_point() +
-          scale_y_continuous(
-            trans = "log",labels=scaleFUN) +
-          geom_errorbar(data=plot.ds.gmc(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
-          ggtitle("Antibody concentration (GMC) by product") +
-          geom_line(aes(group = study_age),color="grey") +
-          theme_classic()+
-          ylab('GMC') +
-          geom_hline(yintercept=(0.35), lty=2, col='gray')+
-         # ylim(0,NA) +
-          facet_grid(dose_description~serotype ) +
-          theme(axis.text.x=element_text(angle=90, hjust=1)) +
-          theme(panel.spacing = unit(1.5, "lines"))
+           scale_y_continuous(
+             trans = "log",labels=scaleFUN) +
+           geom_errorbar(data=plot.ds.gmc(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
+           ggtitle("Antibody concentration (GMC) by product") +
+           geom_line(aes(group = study_id),color="grey") +
+           theme_classic()+
+           ylab('GMC') +
+           geom_hline(yintercept=(0.35), lty=2, col='gray')+
+         # # ylim(0,NA) +
+           facet_grid(dose_description~serotype ) +
+           theme(axis.text.x=element_text(angle=90, hjust=1)) +
+           theme(panel.spacing = unit(1.5, "lines"))
         
-        ggplotly(p1)
+       # ggplotly(p1)
+        p1
       }
     })
     
     #OPA
 
-    output$plot_opa = renderPlotly({
+    output$plot_opa = renderPlot({
       validate(
         need(nrow(plot.ds.gmc()) > 0, message = FALSE)
       )
       if(is.null(input$dose_description)){
         p2 <- ggplot()
-        ggplotly(p2)
+        p2
+        #ggplotly(p2)
       }else{
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
                        d2$dose_description %in% input$dose_description & 
@@ -261,8 +270,7 @@ shinyApp(
       
       plot.ds$study_id <- factor(plot.ds$study_id)
       
-      p2 <-   ggplotly(
-          ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=study_age, col=vax,shape=sponsor) ) +
+      p2 <-   ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=study_age, col=vax,shape=sponsor) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_age),color="grey") +
@@ -273,7 +281,8 @@ shinyApp(
             facet_grid( dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
-      )
+    #  ggplotly(p2)
+      p2
       } 
       
     })
@@ -364,5 +373,92 @@ shinyApp(
         )
       }
       })
+
+  output$plot_ratio_opa = renderPlotly({
+    validate(
+      need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+    )
+    if(is.null(input$dose_description)){
+      p1 <- ggplot()
+      ggplotly(p1)
+      
+    }else{
+      plot.ds <- d2[(d2$vaccine %in% input$vax & 
+                       d2$dose_description %in% input$dose_description & 
+                       d2$serotype %in% input$st &
+                       d2$study_id %in% input$study_id  &
+                       d2$standard_age_list %in% input$fine_age  &
+                       d2$phase %in% input$phase)
+                    ,]
+      plot.ds$study_id <- factor(plot.ds$study_id)
+      
+      plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
+      
+      vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
+      
+      vax.dat.ratio <- as.data.frame(apply(vax.dat,2, function(x) x/vax.dat[,input$ref_vax]))
+      
+      vax.dat.ratio <- vax.dat.ratio[, -which(input$ref_vax==names(vax.dat.ratio) ), drop=F]
+      
+      # names(vax.dat.ratio) <- paste0('Numerator ', names(vax.dat.ratio))
+      
+      plot.ds.c2 <- cbind.data.frame(plot.ds.c[c('dose_description','study_id','serotype','assay')],vax.dat.ratio)
+      plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('dose_description','study_id','serotype','assay'))
+      
+      plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='OPA',]
+      
+      plot.df$study_id <-  as.factor(plot.df$study_id)
+      
+      plot.df <- plot.df[!is.na(plot.df$value),]
+      plot.df$Ratio <- round(plot.df$value,2)
+      
+      dat_text <- data.frame(
+        label = c(rep('', length( unique(plot.df$serotype))-1) ,   paste0("Higher immunogenicity for ",  input$comp_vax)),
+        serotype   = unique(plot.df$serotype)
+      )
+      
+      dat_text2 <- data.frame(
+        label = c(rep('', length( unique(plot.df$serotype))-1) ,   paste0("Higher immunogenicity for ", input$ref_vax)),
+        serotype   = unique(plot.df$serotype)
+      )
+      
+      p2 <- ggplotly(
+        ggplot(plot.df, aes(y=study_id, x=Ratio, col=serotype ) ) +
+          geom_point(aes(shape=dose_description)) +
+          theme_classic()+
+          #  scale_x_continuous(
+          # trans = "log",labels=scaleFUN) +
+          ggtitle(paste0("Comparison of ", input$ref_vax, ' to ', input$comp_vax)) +
+          ylab('Study') +
+          xlab('Ratio of OPA GMT')+
+          geom_vline(xintercept=1, lty=2, col='gray') +
+          xlim(0.2, 1.7) +
+          # ylim(0,NA) +
+          scale_color_lancet() +
+          facet_grid( rows = vars(serotype)) +
+          theme(panel.spacing = unit(0.5, "lines"))+
+          theme(legend.position="none") +
+          geom_text(
+            data    = dat_text,
+            mapping = aes(x = 1.4, y = 1.5, label = label),
+            hjust   = 0,
+            vjust   = 0.5,
+            col='gray'
+          ) +
+          geom_text(
+            data    = dat_text2,
+            mapping = aes(x = 0.5, y = 1.5, label = label),
+            hjust   = 1,
+            vjust   = 0.5,
+            col='gray'
+            
+          )+
+          theme(axis.title.y=element_blank(),
+                axis.text.y=element_blank(),
+                axis.ticks.y=element_blank())
+      )
+    }
+  })
   }
+
 )
