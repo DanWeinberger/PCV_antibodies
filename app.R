@@ -53,6 +53,8 @@ d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m 
 d2$LogResponse= round(log(d2$value),2)
 d2$Response= round((d2$value),2)
 
+d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
+
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
 schedule.list <- list(adult.schedules,pediatric.schedules)
@@ -140,11 +142,6 @@ shinyApp(
         selected = sched.options[1])
     })
     
-    output$hover_info <- renderPrint({
-      cat("input$plot_hover:\n")
-      str(input$plot_hover)
-    })
-    
     output$fine_age <- renderUI({
       if( input$age=='Adult'){
         age.options<- unique(d2$standard_age_list)[grep('Adult',unique(d2$standard_age_list))]
@@ -230,7 +227,7 @@ shinyApp(
         
       }else{
         p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,  
-                                          text=dose_description,
+                                          text=dose_descr_sponsor,
                                           #shape=sponsor,
                                           col=vax))  +
           geom_point() +
@@ -277,6 +274,7 @@ shinyApp(
       p2 <-   ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, 
                                                          y=Response, 
                                                          group=study_age, 
+                                                         text=dose_descr_sponsor,
                                                         # shape=sponsor,
                                                          col=vax) ) +
           geom_point() +
