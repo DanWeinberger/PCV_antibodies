@@ -223,7 +223,7 @@ shinyApp(
             d2$phase %in% input$phase   &
            d2$serotype %in% input$st &
            d2$assay=='GMC' & 
-            d2$sponsor==input$sponsor,]
+          d2$sponsor %in% input$sponsor,]
       })
     
     output$plot_gmc = renderPlotly({
@@ -277,7 +277,7 @@ shinyApp(
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
                        d2$phase %in% input$phase & 
-                       d2$sponsor==input$sponsor) 
+                       d2$sponsor %in% input$sponsor) 
                       
                     ,]
       
@@ -321,7 +321,7 @@ shinyApp(
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
                        d2$phase %in% input$phase & 
-                       d2$sponsor==input$sponsor)
+                       d2$sponsor %in% input$sponsor)
                     ,]
         plot.ds$study_id <- factor(plot.ds$study_id)
       
@@ -408,7 +408,7 @@ shinyApp(
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
                        d2$phase %in% input$phase & 
-                       d2$sponsor==input$sponsor)
+                       d2$sponsor %in% input$sponsor)
                     ,]
       plot.ds$study_id <- factor(plot.ds$study_id)
       
