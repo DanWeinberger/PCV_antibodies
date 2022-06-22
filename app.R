@@ -96,6 +96,7 @@ shinyApp(
                                   unique(d2$phase), selected=unique(d2$phase), multiple=T),
                       uiOutput("ref_vax"),
                       uiOutput("comp_vax"),
+                      uiOutput("sponsor_name"),
                       uiOutput("study_id")
                       
                       ),
@@ -193,6 +194,15 @@ shinyApp(
       selectInput("comp_vax", "Comparator vaccine",
                   input$vax, multiple=F, selected='PCV13')   
     })
+
+    output$sponsor_name <-renderUI({
+      plot.ds <- d2[(d2$vaccine %in% input$vax & 
+                       d2$dose_description %in% input$dose_description & 
+                       d2$standard_age_list %in% input$fine_age  &
+                       d2$phase %in% input$phase)   ,]
+      selectInput("sponsor", "Sponsor:",
+                  unique(plot.ds$sponsor), selected=unique(plot.ds$sponsor), multiple=T)
+    })
     
     output$study_id <-renderUI({
       plot.ds <- d2[(d2$vaccine %in% input$vax & 
@@ -212,7 +222,8 @@ shinyApp(
             d2$standard_age_list %in% input$fine_age  &
             d2$phase %in% input$phase   &
            d2$serotype %in% input$st &
-           d2$assay=='GMC',]
+           d2$assay=='GMC' & 
+            d2$sponsor==input$sponsor,]
       })
     
     output$plot_gmc = renderPlotly({
@@ -265,7 +276,8 @@ shinyApp(
                        d2$serotype %in% input$st &
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase) 
+                       d2$phase %in% input$phase & 
+                       d2$sponsor==input$sponsor) 
                       
                     ,]
       
@@ -308,7 +320,8 @@ shinyApp(
                        d2$serotype %in% input$st &
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase)
+                       d2$phase %in% input$phase & 
+                       d2$sponsor==input$sponsor)
                     ,]
         plot.ds$study_id <- factor(plot.ds$study_id)
       
@@ -394,7 +407,8 @@ shinyApp(
                        d2$serotype %in% input$st &
                        d2$study_id %in% input$study_id  &
                        d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase)
+                       d2$phase %in% input$phase & 
+                       d2$sponsor==input$sponsor)
                     ,]
       plot.ds$study_id <- factor(plot.ds$study_id)
       
