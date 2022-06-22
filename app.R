@@ -91,7 +91,7 @@ shinyApp(
                       uiOutput("dose_description"),
                       
                       selectInput("phase", "Trial Phase:",
-                                  unique(d2$phase), selected=c("Phase 3"), multiple=T),
+                                  unique(d2$phase), selected=unique(d2$phase), multiple=T),
                       uiOutput("ref_vax"),
                       uiOutput("comp_vax"),
                       uiOutput("study_id")
@@ -103,21 +103,20 @@ shinyApp(
         tabBox(
           title = "",
           id = "tabset1", height = "auto", width=12,
-          tabPanel("Concentration (GMC)", plotOutput("plot_gmc") ),
-          tabPanel("Activity (OPA)", plotOutput("plot_opa")),
+          tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc" )),
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
           tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
           tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
           
         )),
-        fluidRow(
-          
+       
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer 
         differences in effectiveness between vaccines. 
         These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in 
         different populations for meaningful comparisons. Caution should be used when comparing
                 data from trials conducted by different sponsors, which might use differents assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
         
-        ),
+        
 
   )
   )
@@ -139,6 +138,11 @@ shinyApp(
         choices = sched.options,
         multiple = TRUE,
         selected = sched.options[1])
+    })
+    
+    output$hover_info <- renderPrint({
+      cat("input$plot_hover:\n")
+      str(input$plot_hover)
     })
     
     output$fine_age <- renderUI({
@@ -214,7 +218,7 @@ shinyApp(
            d2$assay=='GMC',]
       })
     
-    output$plot_gmc = renderPlot({
+    output$plot_gmc = renderPlotly({
       validate(
         need(nrow(plot.ds.gmc()) > 0, message = FALSE)
       )
@@ -227,7 +231,7 @@ shinyApp(
       }else{
         p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,  
                                           text=dose_description,
-                                          shape=sponsor,
+                                          #shape=sponsor,
                                           col=vax))  +
           geom_point() +
            scale_y_continuous(
@@ -243,14 +247,14 @@ shinyApp(
            theme(axis.text.x=element_text(angle=90, hjust=1)) +
            theme(panel.spacing = unit(1.5, "lines"))
         
-       # ggplotly(p1)
+        ggplotly(p1)
         p1
       }
     })
     
     #OPA
 
-    output$plot_opa = renderPlot({
+    output$plot_opa = renderPlotly({
       validate(
         need(nrow(plot.ds.gmc()) > 0, message = FALSE)
       )
@@ -270,7 +274,11 @@ shinyApp(
       
       plot.ds$study_id <- factor(plot.ds$study_id)
       
-      p2 <-   ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, y=Response, group=study_age, col=vax,shape=sponsor) ) +
+      p2 <-   ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, 
+                                                         y=Response, 
+                                                         group=study_age, 
+                                                        # shape=sponsor,
+                                                         col=vax) ) +
           geom_point() +
           ggtitle("Functional antibody (OPA) by product") +
           geom_line(aes(group = study_age),color="grey") +
@@ -281,7 +289,7 @@ shinyApp(
             facet_grid( dose_description~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
-    #  ggplotly(p2)
+     ggplotly(p2)
       p2
       } 
       
