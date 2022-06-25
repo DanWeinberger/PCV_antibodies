@@ -1,0 +1,71 @@
+---
+title: "Analysis"
+author: "Dan Weinberger"
+date: "6/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(shiny)
+library(readxl)
+library(reshape2)
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(grid)
+library(ggsci)
+library(lme4)
+library(shinydashboard)
+library(dplyr)
+library(scales)
+```
+
+
+```{r}
+d1 <- read.csv('./Data/wisspar_export_CIs.csv')
+
+names(d1) <- gsub('outcome_overview_','',names(d1))
+names(d1) <- gsub('study_eligibility_','',names(d1))
+names(d1) <- gsub('clinical_trial_','',names(d1))
+
+d1$sponsor[d1$sponsor=="Wyeth is now a wholly owned subsidiary of Pfizer"] <- "Pfizer"
+d1$sponsor <- as.factor(d1$sponsor)
+
+d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
+keep.vars <- c('vaccine','dose_number','study_id','location_continent',
+               'time_frame','study_age','standard_age_list','phase','sponsor','assay','serotype','time_frame_weeks', 'dose_description','schedule','upper_limit','lower_limit')
+
+
+d2 <- d1 %>% 
+ select(all_of(c(keep.vars,'value')))
+
+d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
+                                      'PCV15',"PCV10 (Synflorix)",
+                                      "PCV10 (Pneumosil)",
+                                     'PCV20'))
+
+#d2$serotype <- as.factor(d2$serotype)
+
+d2$assay[d2$assay=='IgG'] <- 'GMC'
+
+d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
+d2$LogResponse= round(log(d2$value),2)
+d2$Response= round((d2$value),2)
+
+d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
+
+```
+
+Focus on kids
+```{r}
+d3 <- 
+  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child',]
+
+
+mod1 <- lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
+
+summary(mod1)
+```
+
+

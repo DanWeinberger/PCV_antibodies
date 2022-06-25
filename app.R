@@ -53,7 +53,7 @@ d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m 
 d2$LogResponse= round(log(d2$value),2)
 d2$Response= round((d2$value),2)
 
-d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
+d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor,', ', d2$study_id)
 
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
