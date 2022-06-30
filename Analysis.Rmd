@@ -19,6 +19,7 @@ library(lme4)
 library(shinydashboard)
 library(dplyr)
 library(scales)
+library(rstanarm)
 ```
 
 
@@ -60,12 +61,97 @@ d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
 Focus on kids
 ```{r}
 d3 <- 
-  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child',]
+  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child' & d2$vaccine %in% c('PCV7','PCV13','PCV15') & d2$serotype %in% c('4','6B','9V','14','18C','19F','23F'),]
+```
 
+model in LME4
+```{r}
 
-mod1 <- lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
+mod1 <- lmer(LogResponse ~ sponsor +     (vax|serotype) + (1|study_id), data=d3)
+
+re1 <- ranef(mod1)
+fe1 <- coef(mod1)
+re1$serotype
 
 summary(mod1)
+
+pred1 <- predict(mod1)
 ```
+
+modle in rstanarm
+```{r}
+  options(mc.cores = parallel::detectCores())
+mod2 <- stan_lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
+
+```
+
+
+GMC
+For example: 1.91 95%CI: (1.73 to 2.10)
+
+CI: exp(log(x) +/ 1.69*sd/sqrt(n))
+```{r}
+
+gmcs <- d1[d1$assay=='GMC',]
+
+#Try calculating the SE two ways: 
+
+gmcs$ul_diff <- gmcs$upper_limit - gmcs$value
+gmcs$ll_diff <- abs(gmcs$lower_limit - gmcs$value)
+hist(gmcs$ul_diff/ gmcs$ll_diff)
+
+
+#This is the standard way 
+gmcs$log_ul_diff <- log(gmcs$upper_limit) - log(gmcs$value)
+gmcs$log_ll_diff <- abs(log(gmcs$lower_limit) - log(gmcs$value))
+log_sd_ratio <- gmcs$log_ll_diff/ gmcs$log_ul_diff
+log_sd_ratio[is.inf(log_sd_ratio)] <- NA
+
+plot(gmcs$log_ll_diff, gmcs$log_ul_diff)
+hist(gmcs$log_ll_diff/ gmcs$log_ul_diff)
+
+
+
+gmc_mean =1.91
+gmc_ci <- c(1.73, 2.1)
+
+#abs(gmc_mean-gmc_ci)
+#abs(log(gmc_mean)-log(gmc_ci))
+
+log(x)
+
+#https://www.sciencedirect.com/science/article/pii/S1081120610605959?via%3Dihub
+
+```
+
+```{r}
+#https://danweinberger.github.io/ve_uncertainty_test/
+VE_dist_func <- function(obs.VEs , nsim = 10000) {
+
+  ve.all <- c(obs.VEs[1], obs.VEs[2], obs.VEs[3])
+
+  ve.all[ve.all == 100] <- 99.99 # Prevents an infinite log_OR
+
+  log_OR <- log(1 - ve.all / 100)
+
+  names(log_OR) <- c('mean', 'ucl', 'lcl')
+
+  log_or_sd <-  (log_OR['ucl'] - log_OR['mean'])/1.96
+
+   sim.log.or <- rnorm(n = nsim, mean = log_OR['mean'], sd = log_or_sd)
+
+  sim.or <- exp(sim.log.or)
+
+  sim.VE <- 100 * (1 - exp(sim.log.or))
+
+    return(sim.VE)
+}
+
+ 
+
+ 
+```
+
+
 
 
