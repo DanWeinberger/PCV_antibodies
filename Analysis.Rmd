@@ -168,7 +168,7 @@ pcv15sts <- c(pcv13sts, '22F','33F')
 
 
 plot1 <- c2 %>%
-  filter(dose_description=='1m post boost child') %>%
+  filter(dose_description=='1m post primary child') %>%
   mutate( vaccine = factor(vaccine, c('PCV7','PCV13','PCV15',"PCV10 (Synflorix)","PCV10 (Pneumosil)" )),
       pct_responders_carr= ifelse(!(serotype %in% pcv7sts) & vaccine=='PCV7', NA,pct_responders_carr),
           pct_responders_carr= ifelse(!(serotype %in% pcv13sts) & vaccine=='PCV13',NA,pct_responders_carr),
