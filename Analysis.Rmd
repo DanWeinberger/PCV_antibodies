@@ -19,11 +19,15 @@ library(lme4)
 library(shinydashboard)
 library(dplyr)
 library(scales)
-library(rstanarm)
+library(stringr)
+library(readxl)
+#library(rstanarm)
 ```
 
 
 ```{r}
+#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
+
 d1 <- read.csv('./Data/wisspar_export_CIs.csv')
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
@@ -35,7 +39,7 @@ d1$sponsor <- as.factor(d1$sponsor)
 
 d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
 keep.vars <- c('vaccine','dose_number','study_id','location_continent',
-               'time_frame','study_age','standard_age_list','phase','sponsor','assay','serotype','time_frame_weeks', 'dose_description','schedule','upper_limit','lower_limit')
+               'time_frame','study_age','standard_age_list','phase','sponsor','assay','serotype','time_frame_weeks', 'dose_description','schedule','participants','upper_limit','lower_limit')
 
 
 d2 <- d1 %>% 
@@ -61,7 +65,9 @@ d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
 Focus on kids
 ```{r}
 d3 <- 
-  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child' & d2$vaccine %in% c('PCV7','PCV13','PCV15') & d2$serotype %in% c('4','6B','9V','14','18C','19F','23F'),]
+  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child' & d2$vaccine %in% c('PCV7','PCV13','PCV15'),]
+
+#& #d2$serotype %in% #c('1','3','4','6B','9V','14','18C','19F','23F'),]
 ```
 
 model in LME4
@@ -80,8 +86,8 @@ pred1 <- predict(mod1)
 
 modle in rstanarm
 ```{r}
-  options(mc.cores = parallel::detectCores())
-mod2 <- stan_lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
+#   options(mc.cores = parallel::detectCores())
+# mod2 <- stan_lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
 
 ```
 
@@ -89,41 +95,87 @@ mod2 <- stan_lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data
 GMC
 For example: 1.91 95%CI: (1.73 to 2.10)
 
-CI: exp(log(x) +/ 1.69*sd/sqrt(n))
+CI: exp(log(x) +/ 1.96*sd/sqrt(n))
+
+#https://www.sciencedirect.com/science/article/pii/S1081120610605959?via%3Dihub
+
 ```{r}
 
-gmcs <- d1[d1$assay=='GMC',]
+gmcs <- d3[d3$assay=='GMC',]
 
 #Try calculating the SE two ways: 
 
 gmcs$ul_diff <- gmcs$upper_limit - gmcs$value
 gmcs$ll_diff <- abs(gmcs$lower_limit - gmcs$value)
+gmcs$se_ratio <- gmcs$ll_diff/gmcs$ul_diff
+gmcs$se_ratio[is.infinite(gmcs$se_ratio)] <- NA
 hist(gmcs$ul_diff/ gmcs$ll_diff)
 
 
 #This is the standard way 
 gmcs$log_ul_diff <- log(gmcs$upper_limit) - log(gmcs$value)
 gmcs$log_ll_diff <- abs(log(gmcs$lower_limit) - log(gmcs$value))
-log_sd_ratio <- gmcs$log_ll_diff/ gmcs$log_ul_diff
-log_sd_ratio[is.inf(log_sd_ratio)] <- NA
+gmcs$log_se_ratio <- gmcs$log_ll_diff/ gmcs$log_ul_diff
+gmcs$log_se_ratio[is.infinite(gmcs$log_se_ratio)] <- NA
+
 
 plot(gmcs$log_ll_diff, gmcs$log_ul_diff)
 hist(gmcs$log_ll_diff/ gmcs$log_ul_diff)
+hist(gmcs$log_se_ratio)
+mean(gmcs$log_se_ratio, na.rm=T) #This is much closer to 1 (symmetrical CI)
+
+plot(log(gmcs$value+0.5),gmcs$log_se_ratio) #where it is not symmetrical; it is usually because the GMC value is very very low, which can 
 
 
+#Calculate standard deviation of the GMCs
+gmcs$sd_gmc <- (log(gmcs$upper_limit) - log(gmcs$value))/1.96*sqrt(gmcs$participants)
 
-gmc_mean =1.91
-gmc_ci <- c(1.73, 2.1)
 
-#abs(gmc_mean-gmc_ci)
-#abs(log(gmc_mean)-log(gmc_ci))
+gmcs$pct_responders_est <- 1- pnorm(log(0.35), mean=log(gmcs$value), sd=gmcs$sd_gmc)
 
-log(x)
 
-#https://www.sciencedirect.com/science/article/pii/S1081120610605959?via%3Dihub
+#evaluate percent responders with NCT03893448; post dose 3; primary #Checks out pretty well
+
+test <- gmcs[gmcs$study_id=='NCT03893448' & gmcs$dose_description=="1m post primary child" , c('serotype','pct_responders_est', 'vaccine')]  
+View(test)
+
 
 ```
 
+Serotype-specific correlate of protection for carriage
+https://pubmed.ncbi.nlm.nih.gov/29069415/
+
+```{r}
+c1 <- read_excel('./Data/Voysey CoP carriage.xlsx')
+
+c1 <- c1[,1:2]
+names(c1) <- c('serotype','cop_carriage')
+c1$cop_carriage <- as.numeric(str_trim( c1$cop_carriage))
+c1$serotype <- str_trim(c1$serotype)
+
+
+c2 <- merge(gmcs, c1, by='serotype', all.y=T)
+
+c2$pct_responders_carr <- 1- pnorm(log(c2$cop_carriage), mean=log(c2$value), sd=c2$sd_gmc)
+
+test2 <- c2[ c2$dose_description=="1m post primary child" , c('serotype','pct_responders_est','pct_responders_carr', 'vaccine', 'study_id')]  
+View(test2)
+
+test2$vaccine <- factor(test2$vaccine, c('PCV7', 'PCV13','PCV15'))
+
+ggplot(test2, aes(x=vaccine, y=pct_responders_carr, group=study_id))+
+  geom_point()+
+  theme_classic() +
+  facet_wrap(~serotype)
+  
+
+
+```
+
+
+
+
+Used for merck analysis to reconstruct the VE
 ```{r}
 #https://danweinberger.github.io/ve_uncertainty_test/
 VE_dist_func <- function(obs.VEs , nsim = 10000) {
