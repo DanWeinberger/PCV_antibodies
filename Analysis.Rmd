@@ -65,7 +65,7 @@ d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
 Focus on kids
 ```{r}
 d3 <- 
-  d2[grepl('child', d2$dose_description) & d2$assay=="GMC" & d2$dose_description=='1m post primary child' & d2$vaccine %in% c('PCV7','PCV13','PCV15'),]
+  d2[grepl('child', d2$dose_description) ,]
 
 #& #d2$serotype %in% #c('1','3','4','6B','9V','14','18C','19F','23F'),]
 ```
@@ -137,7 +137,6 @@ gmcs$pct_responders_est <- 1- pnorm(log(0.35), mean=log(gmcs$value), sd=gmcs$sd_
 #evaluate percent responders with NCT03893448; post dose 3; primary #Checks out pretty well
 
 test <- gmcs[gmcs$study_id=='NCT03893448' & gmcs$dose_description=="1m post primary child" , c('serotype','pct_responders_est', 'vaccine')]  
-View(test)
 
 
 ```
@@ -158,14 +157,30 @@ c2 <- merge(gmcs, c1, by='serotype', all.y=T)
 
 c2$pct_responders_carr <- 1- pnorm(log(c2$cop_carriage), mean=log(c2$value), sd=c2$sd_gmc)
 
-test2 <- c2[ c2$dose_description=="1m post primary child" , c('serotype','pct_responders_est','pct_responders_carr', 'vaccine', 'study_id')]  
-View(test2)
+#View(test2)
 
-test2$vaccine <- factor(test2$vaccine, c('PCV7', 'PCV13','PCV15'))
+```
 
-ggplot(test2, aes(x=vaccine, y=pct_responders_carr, group=study_id))+
+```{r, fig.width=7, fig.height=7}
+pcv7sts <- c('4','6A','6B','9V','14','18C','19F','23F')
+pcv13sts <- c(pcv7sts, '1','3','5','6C','7F','19A')
+pcv15sts <- c(pcv13sts, '22F','33F')
+
+
+plot1 <- c2 %>%
+  filter(dose_description=='1m post boost child') %>%
+  mutate( vaccine = factor(vaccine, c('PCV7','PCV13','PCV15',"PCV10 (Synflorix)","PCV10 (Pneumosil)" )),
+      pct_responders_carr= ifelse(!(serotype %in% pcv7sts) & vaccine=='PCV7', NA,pct_responders_carr),
+          pct_responders_carr= ifelse(!(serotype %in% pcv13sts) & vaccine=='PCV13',NA,pct_responders_carr),
+      pct_responders_carr= ifelse(!(serotype %in% pcv15sts) & vaccine=='PCV15',NA,pct_responders_carr),
+      )
+
+ggplot(plot1, aes(x=vaccine, y=pct_responders_carr, group=study_id))+
   geom_point()+
+  geom_line(aes(group = study_id),color="grey") +
+
   theme_classic() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   facet_wrap(~serotype)
   
 
