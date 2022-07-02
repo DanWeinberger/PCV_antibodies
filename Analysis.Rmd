@@ -182,7 +182,7 @@ ggplot(plot1, aes(x=vaccine, y=pct_responders_carr, group=study_id))+
   theme_classic() +
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   facet_wrap(~serotype)
-  
+
 
 
 ```
