@@ -1,0 +1,224 @@
+---
+title: "Analysis"
+author: "Dan Weinberger"
+date: "6/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(shiny)
+library(readxl)
+library(reshape2)
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(grid)
+library(ggsci)
+library(lme4)
+library(shinydashboard)
+library(dplyr)
+library(scales)
+library(stringr)
+library(readxl)
+#library(rstanarm)
+```
+
+
+```{r}
+#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
+
+d1 <- read.csv('./Data/wisspar_export_CIs.csv')
+
+names(d1) <- gsub('outcome_overview_','',names(d1))
+names(d1) <- gsub('study_eligibility_','',names(d1))
+names(d1) <- gsub('clinical_trial_','',names(d1))
+
+d1$sponsor[d1$sponsor=="Wyeth is now a wholly owned subsidiary of Pfizer"] <- "Pfizer"
+d1$sponsor <- as.factor(d1$sponsor)
+
+d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
+keep.vars <- c('vaccine','dose_number','study_id','location_continent',
+               'time_frame','study_age','standard_age_list','phase','sponsor','assay','serotype','time_frame_weeks', 'dose_description','schedule','participants','upper_limit','lower_limit')
+
+
+d2 <- d1 %>% 
+ select(all_of(c(keep.vars,'value')))
+
+d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
+                                      'PCV15',"PCV10 (Synflorix)",
+                                      "PCV10 (Pneumosil)",
+                                     'PCV20'))
+
+#d2$serotype <- as.factor(d2$serotype)
+
+d2$assay[d2$assay=='IgG'] <- 'GMC'
+
+d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
+d2$LogResponse= round(log(d2$value),2)
+d2$Response= round((d2$value),2)
+
+d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor)
+
+```
+
+Focus on kids
+```{r}
+d3 <- 
+  d2[grepl('child', d2$dose_description) ,]
+
+#& #d2$serotype %in% #c('1','3','4','6B','9V','14','18C','19F','23F'),]
+```
+
+model in LME4
+```{r}
+
+mod1 <- lmer(LogResponse ~ sponsor +     (vax|serotype) + (1|study_id), data=d3)
+
+re1 <- ranef(mod1)
+fe1 <- coef(mod1)
+re1$serotype
+
+summary(mod1)
+
+pred1 <- predict(mod1)
+```
+
+modle in rstanarm
+```{r}
+#   options(mc.cores = parallel::detectCores())
+# mod2 <- stan_lmer(LogResponse ~ sponsor +    (vax|serotype) + (1|study_id), data=d3)
+
+```
+
+
+GMC
+For example: 1.91 95%CI: (1.73 to 2.10)
+
+CI: exp(log(x) +/ 1.96*sd/sqrt(n))
+
+#https://www.sciencedirect.com/science/article/pii/S1081120610605959?via%3Dihub
+
+```{r}
+
+gmcs <- d3[d3$assay=='GMC',]
+
+#Try calculating the SE two ways: 
+
+gmcs$ul_diff <- gmcs$upper_limit - gmcs$value
+gmcs$ll_diff <- abs(gmcs$lower_limit - gmcs$value)
+gmcs$se_ratio <- gmcs$ll_diff/gmcs$ul_diff
+gmcs$se_ratio[is.infinite(gmcs$se_ratio)] <- NA
+hist(gmcs$ul_diff/ gmcs$ll_diff)
+
+
+#This is the standard way 
+gmcs$log_ul_diff <- log(gmcs$upper_limit) - log(gmcs$value)
+gmcs$log_ll_diff <- abs(log(gmcs$lower_limit) - log(gmcs$value))
+gmcs$log_se_ratio <- gmcs$log_ll_diff/ gmcs$log_ul_diff
+gmcs$log_se_ratio[is.infinite(gmcs$log_se_ratio)] <- NA
+
+
+plot(gmcs$log_ll_diff, gmcs$log_ul_diff)
+hist(gmcs$log_ll_diff/ gmcs$log_ul_diff)
+hist(gmcs$log_se_ratio)
+mean(gmcs$log_se_ratio, na.rm=T) #This is much closer to 1 (symmetrical CI)
+
+plot(log(gmcs$value+0.5),gmcs$log_se_ratio) #where it is not symmetrical; it is usually because the GMC value is very very low, which can 
+
+
+#Calculate standard deviation of the GMCs
+gmcs$sd_gmc <- (log(gmcs$upper_limit) - log(gmcs$value))/1.96*sqrt(gmcs$participants)
+
+
+gmcs$pct_responders_est <- 1- pnorm(log(0.35), mean=log(gmcs$value), sd=gmcs$sd_gmc)
+
+
+#evaluate percent responders with NCT03893448; post dose 3; primary #Checks out pretty well
+
+test <- gmcs[gmcs$study_id=='NCT03893448' & gmcs$dose_description=="1m post primary child" , c('serotype','pct_responders_est', 'vaccine')]  
+
+
+```
+
+Serotype-specific correlate of protection for carriage
+https://pubmed.ncbi.nlm.nih.gov/29069415/
+
+```{r}
+c1 <- read_excel('./Data/Voysey CoP carriage.xlsx')
+
+c1 <- c1[,1:2]
+names(c1) <- c('serotype','cop_carriage')
+c1$cop_carriage <- as.numeric(str_trim( c1$cop_carriage))
+c1$serotype <- str_trim(c1$serotype)
+
+
+c2 <- merge(gmcs, c1, by='serotype', all.y=T)
+
+c2$pct_responders_carr <- 1- pnorm(log(c2$cop_carriage), mean=log(c2$value), sd=c2$sd_gmc)
+
+#View(test2)
+
+```
+
+```{r, fig.width=7, fig.height=7}
+pcv7sts <- c('4','6A','6B','9V','14','18C','19F','23F')
+pcv13sts <- c(pcv7sts, '1','3','5','6C','7F','19A')
+pcv15sts <- c(pcv13sts, '22F','33F')
+
+
+plot1 <- c2 %>%
+  filter(dose_description=='1m post primary child') %>%
+  mutate( vaccine = factor(vaccine, c('PCV7','PCV13','PCV15',"PCV10 (Synflorix)","PCV10 (Pneumosil)" )),
+      pct_responders_carr= ifelse(!(serotype %in% pcv7sts) & vaccine=='PCV7', NA,pct_responders_carr),
+          pct_responders_carr= ifelse(!(serotype %in% pcv13sts) & vaccine=='PCV13',NA,pct_responders_carr),
+      pct_responders_carr= ifelse(!(serotype %in% pcv15sts) & vaccine=='PCV15',NA,pct_responders_carr),
+      )
+
+ggplot(plot1, aes(x=vaccine, y=pct_responders_carr, group=study_id))+
+  geom_point()+
+  geom_line(aes(group = study_id),color="grey") +
+
+  theme_classic() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  facet_wrap(~serotype)
+
+
+
+```
+
+
+
+
+Used for merck analysis to reconstruct the VE
+```{r}
+#https://danweinberger.github.io/ve_uncertainty_test/
+VE_dist_func <- function(obs.VEs , nsim = 10000) {
+
+  ve.all <- c(obs.VEs[1], obs.VEs[2], obs.VEs[3])
+
+  ve.all[ve.all == 100] <- 99.99 # Prevents an infinite log_OR
+
+  log_OR <- log(1 - ve.all / 100)
+
+  names(log_OR) <- c('mean', 'ucl', 'lcl')
+
+  log_or_sd <-  (log_OR['ucl'] - log_OR['mean'])/1.96
+
+   sim.log.or <- rnorm(n = nsim, mean = log_OR['mean'], sd = log_or_sd)
+
+  sim.or <- exp(sim.log.or)
+
+  sim.VE <- 100 * (1 - exp(sim.log.or))
+
+    return(sim.VE)
+}
+
+ 
+
+ 
+```
+
+
+
+
