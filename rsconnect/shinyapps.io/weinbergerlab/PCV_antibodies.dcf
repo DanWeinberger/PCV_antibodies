@@ -5,9 +5,10 @@ account: weinbergerlab
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4823496
-bundleId: 5993447
+bundleId: 6348706
 url: https://weinbergerlab.shinyapps.io/PCV_antibodies/
-when: 1654796699.40612
-lastSyncTime: 1654796699.40612
+when: 1664397319.60677
+lastSyncTime: 1664397319.60677
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: Analysis.Rmd|pcv_antibodies.Rmd|test_plotly.R|testplots.R
