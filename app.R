@@ -22,8 +22,8 @@ pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
 
-#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
-#write.csv(d1,"./Data/wisspar_export.csv")
+#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&clinical_trial_sponsor=true")
+#write.csv(d1,"./Data/wisspar_export_CIs.csv")
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
@@ -106,7 +106,13 @@ shinyApp(
         tabBox(
           title = "",
           id = "tabset1", height = "auto", width=12,
-          tabPanel("Concentration (GMC)", plotlyOutput("plot_gmc" )),
+          tabPanel(title="Concentration (GMC)",
+                   tabBox( title="", id='tabset1a',height='auto',width=12,
+                     tabPanel(title='ELISA',
+                       plotlyOutput("plot_gmc_elisa" )),
+                     tabPanel(title='ECL',
+                              plotlyOutput("plot_gmc_ecl")   ))
+                   ),
           tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
           tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
           tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
@@ -215,20 +221,42 @@ shinyApp(
       
     #add to UI: uiOutput("secondSelection")
     
-    plot.ds.gmc <- reactive({
+    plot.ds.gmc_elisa <- reactive({
    
-       d2[d2$vaccine %in% input$vax & 
-            d2$dose_description %in% input$dose_description & 
-            d2$standard_age_list %in% input$fine_age  &
-            d2$phase %in% input$phase   &
-           d2$serotype %in% input$st &
-           d2$assay=='GMC' & 
-          d2$sponsor %in% input$sponsor,]
+       d2 %>% filter(vaccine %in% input$vax & 
+            dose_description %in% input$dose_description & 
+            standard_age_list %in% input$fine_age  &
+            phase %in% input$phase   &
+           serotype %in% input$st &
+           assay=='GMC' & 
+          sponsor %in% input$sponsor & sponsor != "Merck Sharp & Dohme LLC")
       })
     
-    output$plot_gmc = renderPlotly({
+    plot.ds.gmc <- reactive({
+      
+      d2 %>% filter(vaccine %in% input$vax & 
+                      dose_description %in% input$dose_description & 
+                      standard_age_list %in% input$fine_age  &
+                      phase %in% input$phase   &
+                      serotype %in% input$st &
+                      assay=='GMC' & 
+                      sponsor %in% input$sponsor )
+    })
+    
+    plot.ds.gmc_ecl <- reactive({
+      
+      d2 %>% filter(vaccine %in% input$vax & 
+                      dose_description %in% input$dose_description & 
+                      standard_age_list %in% input$fine_age  &
+                      phase %in% input$phase   &
+                      serotype %in% input$st &
+                      assay=='GMC' & 
+                      sponsor %in% input$sponsor & sponsor == "Merck Sharp & Dohme LLC")
+    })
+    
+    output$plot_gmc_elisa = renderPlotly({
       validate(
-        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+        need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
       )
       if(is.null(input$dose_description)){
         
@@ -237,14 +265,16 @@ shinyApp(
         #ggplotly(p1)
         
       }else{
-        p1 <-   ggplot(plot.ds.gmc(), aes(x=vax, y=Response,  
+        p1 <- plot.ds.gmc_elisa() %>% 
+          filter(sponsor != "Merck Sharp & Dohme LLC") %>%
+          ggplot( aes(x=vax, y=Response,  
                                           text=dose_descr_sponsor,
                                           #shape=sponsor,
                                           col=vax))  +
           geom_point() +
            scale_y_continuous(
              trans = "log",labels=scaleFUN) +
-           geom_errorbar(data=plot.ds.gmc(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
+           geom_errorbar(data=plot.ds.gmc_elisa(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
            ggtitle("Antibody concentration (GMC) by product") +
            geom_line(aes(group = study_id),color="grey") +
            theme_classic()+
@@ -254,6 +284,43 @@ shinyApp(
            facet_grid(dose_description~serotype ) +
            theme(axis.text.x=element_text(angle=90, hjust=1)) +
            theme(panel.spacing = unit(1.5, "lines"))
+        
+        ggplotly(p1)
+        p1
+      }
+    })
+    
+    #ECL
+    output$plot_gmc_ecl= renderPlotly({
+      validate(
+        need(nrow(plot.ds.gmc_ecl()) > 0, message = FALSE)
+      )
+      if(is.null(input$dose_description)){
+        
+        p1 <- ggplot()
+        p1
+        #ggplotly(p1)
+        
+      }else{
+        p1 <- plot.ds.gmc_ecl() %>% 
+          filter(sponsor== "Merck Sharp & Dohme LLC") %>%
+          ggplot( aes(x=vax, y=Response,  
+                      text=dose_descr_sponsor,
+                      #shape=sponsor,
+                      col=vax))  +
+          geom_point() +
+          scale_y_continuous(
+            trans = "log",labels=scaleFUN) +
+          geom_errorbar(data=plot.ds.gmc_ecl(), aes(ymin=(lower_limit), ymax=(upper_limit), color=vax, width=0)) +
+          ggtitle("Antibody concentration (GMC) by product") +
+          geom_line(aes(group = study_id),color="grey") +
+          theme_classic()+
+          ylab('GMC') +
+          geom_hline(yintercept=(0.35), lty=2, col='gray')+
+          # # ylim(0,NA) +
+          facet_grid(dose_description~serotype ) +
+          theme(axis.text.x=element_text(angle=90, hjust=1)) +
+          theme(panel.spacing = unit(1.5, "lines"))
         
         ggplotly(p1)
         p1
