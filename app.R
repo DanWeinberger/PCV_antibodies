@@ -113,7 +113,10 @@ shinyApp(
         differences in effectiveness between vaccines. 
         These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in 
         different populations for meaningful comparisons. Caution should be used when comparing
-                data from trials conducted by different sponsors, which might use different assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
+                data from trials conducted by different sponsors, which might use different assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
+      
+    infoBox("Change log:", "Sept 30, 2022: Separates out GMC calculated with ELISA from those measured with ELC, and separate out OPA results by sponsor, as suggested by a trial sponsor.", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
+      
         
         
 
