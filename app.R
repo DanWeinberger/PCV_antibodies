@@ -30,6 +30,8 @@ names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
 
 d1$sponsor[d1$sponsor=="Wyeth is now a wholly owned subsidiary of Pfizer"] <- "Pfizer"
+d1$sponsor[grep('Merck',d1$sponsor)] <- 'Merck'
+
 d1$sponsor <- as.factor(d1$sponsor)
 
 d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
@@ -48,6 +50,7 @@ d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
 #d2$serotype <- as.factor(d2$serotype)
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
+
 
 d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
 d2$LogResponse= round(log(d2$value),2)
@@ -164,7 +167,7 @@ shinyApp(
         inputId = 'dose_description',
         label = 'Doses received and timing:',
         choices = dose.options,
-        multiple = TRUE,
+        multiple = FALSE,
         selected = dose.default.select) #'1m post primary child' ,'1m post dose 1 adult'
       })
     
@@ -206,6 +209,20 @@ shinyApp(
                   unique(plot.ds$study_id), selected=unique(plot.ds$study_id), multiple=T)
     })
       
+    plotCount <- reactive({
+      req(input$sponsor)
+      length(input$sponsor)
+    })
+    stCount <- reactive({
+      req(input$st)
+      length(input$st)
+    })
+    
+    plotHeight <- reactive(150 * plotCount())   
+
+    plotWidthSt <- reactive(100 * stCount())   
+    plotHeightSt <- reactive(100 * stCount())   
+    
     output$tabbed_output <-  renderUI({
       if(input$age=='Child'){
       tabBox(
@@ -218,9 +235,9 @@ shinyApp(
                        tabPanel(title='ECL',
                                 plotlyOutput("plot_gmc_ecl")   ))
       ),
-      tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
-      tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
-      tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
+      tabPanel("Activity (OPA)", plotlyOutput("plot_opa",height = plotHeight())),
+      tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F, height=plotHeightSt())),
+      tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F, height=plotHeightSt()))
       
       )
       }else{
@@ -332,7 +349,7 @@ shinyApp(
           ylab('GMC') +
           geom_hline(yintercept=(0.35), lty=2, col='gray')+
           # # ylim(0,NA) +
-          facet_grid(dose_description~serotype ) +
+          facet_grid( ~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
         
@@ -377,7 +394,7 @@ shinyApp(
           ylab('OPA GMT') +
             scale_y_continuous(
               trans = "log",labels=scaleFUN) +
-            facet_grid( dose_description~serotype ) +
+            facet_grid( sponsor~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
      ggplotly(p2)
