@@ -103,21 +103,8 @@ shinyApp(
     dashboardBody(
     
       fluidRow(
-        tabBox(
-          title = "",
-          id = "tabset1", height = "auto", width=12,
-          tabPanel(title="Concentration (GMC)",
-                   tabBox( title="", id='tabset1a',height='auto',width=12,
-                     tabPanel(title='ELISA',
-                       plotlyOutput("plot_gmc_elisa" )),
-                     tabPanel(title='ECL',
-                              plotlyOutput("plot_gmc_ecl")   ))
-                   ),
-          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
-          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
-          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
-          
-        )),
+        uiOutput("tabbed_output")
+       ),
        
         infoBox("Important information", "Data on immunogenicity alone cannot be used to infer 
         differences in effectiveness between vaccines. 
@@ -219,6 +206,33 @@ shinyApp(
                   unique(plot.ds$study_id), selected=unique(plot.ds$study_id), multiple=T)
     })
       
+    output$tabbed_output <-  renderUI({
+      if(input$age=='Child'){
+      tabBox(
+      title = "",
+      id = "tabset1", height = "auto", width=12,
+      tabPanel(title="Concentration (GMC)",
+               tabBox( title="", id='tabset1a',height='auto',width=12,
+                       tabPanel(title='ELISA',
+                                plotlyOutput("plot_gmc_elisa" )),
+                       tabPanel(title='ECL',
+                                plotlyOutput("plot_gmc_ecl")   ))
+      ),
+      tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
+      tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
+      tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
+      
+      )
+      }else{
+        tabBox(
+          title = "",
+          id = "tabset1", height = "auto", width=12,
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
+          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
+        )
+    }
+    })
+    
     #add to UI: uiOutput("secondSelection")
     
     plot.ds.gmc_elisa <- reactive({
