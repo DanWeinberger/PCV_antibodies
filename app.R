@@ -115,7 +115,7 @@ shinyApp(
         different populations for meaningful comparisons. Caution should be used when comparing
                 data from trials conducted by different sponsors, which might use different assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
       
-    infoBox("Change log:", "Sept 30, 2022: Separates out GMC calculated with ELISA from those measured with ELC, and separate out OPA results by sponsor, as suggested by a trial sponsor.", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
+    infoBox("Change log:", "Sept 30, 2022: Separately plot GMC calculated with ELISA from those measured with ELC, and separate out OPA results by sponsor, as suggested by a trial sponsor.", icon = icon("glyphicon glyphicon-edit",lib ='glyphicon'), width=12)
       
         
         
@@ -263,7 +263,7 @@ shinyApp(
             phase %in% input$phase   &
            serotype %in% input$st &
            assay=='GMC' & 
-          sponsor %in% input$sponsor & sponsor != "Merck Sharp & Dohme LLC")
+          sponsor %in% input$sponsor & sponsor != "Merck")
       })
     
     plot.ds.gmc <- reactive({
@@ -285,7 +285,7 @@ shinyApp(
                       phase %in% input$phase   &
                       serotype %in% input$st &
                       assay=='GMC' & 
-                      sponsor %in% input$sponsor & sponsor == "Merck Sharp & Dohme LLC")
+                      sponsor %in% input$sponsor & sponsor == "Merck")
     })
     
     output$plot_gmc_elisa = renderPlotly({
@@ -300,7 +300,7 @@ shinyApp(
         
       }else{
         p1 <- plot.ds.gmc_elisa() %>% 
-          filter(sponsor != "Merck Sharp & Dohme LLC") %>%
+          filter(sponsor != "Merck") %>%
           ggplot( aes(x=vax, y=Response,  
                                           text=dose_descr_sponsor,
                                           #shape=sponsor,
@@ -337,7 +337,7 @@ shinyApp(
         
       }else{
         p1 <- plot.ds.gmc_ecl() %>% 
-          filter(sponsor== "Merck Sharp & Dohme LLC") %>%
+          filter(sponsor== "Merck") %>%
           ggplot( aes(x=vax, y=Response,  
                       text=dose_descr_sponsor,
                       #shape=sponsor,
