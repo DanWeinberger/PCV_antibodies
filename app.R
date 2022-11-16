@@ -1,5 +1,7 @@
 #TODO: STOP temporary error message
 
+##ISSUE: still getting replicates in adults; see NCT00427895
+
 library(shiny)
 library(readxl)
 library(reshape2)
@@ -18,11 +20,12 @@ scaleFUN <- function(x) sprintf("%.2f", x)
 
 
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
-#d1a <- read_excel("./Data/IgGGMCs2.xlsx")
+
+#d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true&outcome_overview_description=true")
+# write.csv(d1a,'./Data/wisspar_export_CIs.csv')
+
 d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
-#d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
-# write.csv(d1a,'./Data/wisspar_export_CIs.csv')
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
@@ -33,7 +36,7 @@ d1$sponsor[grep('Merck',d1$sponsor)] <- 'Merck'
 
 d1$sponsor <- as.factor(d1$sponsor)
 
-d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
+d1$study_age <- paste0(d1$study_id, d1$standard_age_list, d1$description)
 keep.vars <- c('vaccine','dose_number','study_id','location_continent',
                'time_frame','study_age','standard_age_list','phase','sponsor','assay','serotype','time_frame_weeks', 'dose_description','schedule','upper_limit','lower_limit')
 
@@ -149,7 +152,7 @@ shinyApp(
       label = 'Finer age categories:',
       choices = age.options,
       multiple = TRUE,
-      selected = age.options[1])
+      selected = age.options[1:(min(length(age.options),3))])
   })
    
     
@@ -166,7 +169,7 @@ shinyApp(
         inputId = 'dose_description',
         label = 'Doses received and timing:',
         choices = dose.options,
-        multiple = FALSE,
+        multiple = TRUE,
         selected = dose.default.select) #'1m post primary child' ,'1m post dose 1 adult'
       })
     
