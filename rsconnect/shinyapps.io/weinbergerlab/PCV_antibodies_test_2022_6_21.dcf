@@ -1,0 +1,13 @@
+name: PCV_antibodies_test_2022_6_21
+title: PCV_antibodies_test_2022_6_21
+username:
+account: weinbergerlab
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6526995
+bundleId: 6032203
+url: https://weinbergerlab.shinyapps.io/PCV_antibodies_test_2022_6_21/
+when: 1655904440.73489
+lastSyncTime: 1655904440.73489
+asMultiple: FALSE
+asStatic: FALSE

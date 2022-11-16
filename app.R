@@ -21,9 +21,8 @@ pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 #d1a <- read_excel("./Data/IgGGMCs2.xlsx")
 d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
-
-#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&clinical_trial_sponsor=true")
-#write.csv(d1,"./Data/wisspar_export_CIs.csv")
+#d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
+# write.csv(d1a,'./Data/wisspar_export_CIs.csv')
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
@@ -42,10 +41,7 @@ keep.vars <- c('vaccine','dose_number','study_id','location_continent',
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
 
-d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
-                                      'PCV15',"PCV10 (Synflorix)",
-                                      "PCV10 (Pneumosil)",
-                                     'PCV20'))
+d2$vax <- factor(d2$vaccine)
 
 #d2$serotype <- as.factor(d2$serotype)
 
@@ -109,7 +105,7 @@ shinyApp(
         uiOutput("tabbed_output")
        ),
        
-        infoBox("Important information", "Data on immunogenicity alone cannot be used to infer 
+        infoBox("Important information", "This database is still under development. Please use with caution. Data on immunogenicity alone cannot be used to infer 
         differences in effectiveness between vaccines. 
         These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in 
         different populations for meaningful comparisons. Caution should be used when comparing
@@ -288,6 +284,16 @@ shinyApp(
                       sponsor %in% input$sponsor & sponsor == "Merck")
     })
     
+    plot.ds.opa <- reactive({
+      
+      d2 %>% filter(vaccine %in% input$vax & 
+                      dose_description %in% input$dose_description & 
+                      standard_age_list %in% input$fine_age  &
+                      phase %in% input$phase   &
+                      serotype %in% input$st &
+                      assay=='OPA' & 
+                      sponsor %in% input$sponsor )
+    })
     output$plot_gmc_elisa = renderPlotly({
       validate(
         need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
@@ -365,7 +371,7 @@ shinyApp(
 
     output$plot_opa = renderPlotly({
       validate(
-        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+        need(nrow(plot.ds.opa()) > 0, message = FALSE)
       )
       if(is.null(input$dose_description)){
         p2 <- ggplot()
