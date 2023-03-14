@@ -26,7 +26,8 @@ library(readxl)
 
 
 ```{r}
-#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true")
+#d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
+# write.csv(d1a,'./Data/wisspar_export_CIs.csv')
 
 d1 <- read.csv('./Data/wisspar_export_CIs.csv')
 

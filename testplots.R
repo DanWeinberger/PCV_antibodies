@@ -1,14 +1,23 @@
+# 
+# plot.ds <- d2[(d2$vaccine %in% unique(d2$vaccine) & 
+#                  d2$Dose %in% c("2/3") & 
+#                  d2$serotype %in% c('4','14','19F','23F') &
+#                  d2$study_id %in% unique(d2$study_id)  &
+#                  d2$standard_age_list %in% "[\"Child\"]"  &
+#                  d2$phase %in% "Phase 3")
+#               ,] 
 
-plot.ds <- d2[(d2$vaccine %in% unique(d2$vaccine) & 
-                 d2$Dose %in% c("2/3") & 
+
+plot.ds <- d2[(d2$vaccine %in% unique(d2$vaccine) &
+               #  d2$Dose %in% c("2/3") &
                  d2$serotype %in% c('4','14','19F','23F') &
                  d2$study_id %in% unique(d2$study_id)  &
-                 d2$standard_age_list %in% "[\"Child\"]"  &
+                 d2$standard_age_list %in% "[\"Older Adult\"]"  &
                  d2$phase %in% "Phase 3")
-              ,] 
+              ,]
 
-ref_vax='PCV10 (Pneumosil)'
-comp_vax='PCV10 (Synflorix)'
+ref_vax='PCV13'
+comp_vax='PCV20'
 
 
 plot.ds$study_id <- factor(plot.ds$study_id)

@@ -21,15 +21,16 @@ pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 #d1a <- read_excel("./Data/IgGGMCs2.xlsx")
 d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
-
-#d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&clinical_trial_sponsor=true")
-#write.csv(d1,"./Data/wisspar_export_CIs.csv")
+#d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
+# write.csv(d1a,'./Data/wisspar_export_CIs.csv')
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
 names(d1) <- gsub('clinical_trial_','',names(d1))
 
 d1$sponsor[d1$sponsor=="Wyeth is now a wholly owned subsidiary of Pfizer"] <- "Pfizer"
+d1$sponsor[grep('Merck',d1$sponsor)] <- 'Merck'
+
 d1$sponsor <- as.factor(d1$sponsor)
 
 d1$study_age <- paste0(d1$study_id, d1$standard_age_list)
@@ -40,14 +41,12 @@ keep.vars <- c('vaccine','dose_number','study_id','location_continent',
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
 
-d2$vax <- factor(d2$vaccine, levels=c('PCV7', "PCV13",
-                                      'PCV15',"PCV10 (Synflorix)",
-                                      "PCV10 (Pneumosil)",
-                                     'PCV20'))
+d2$vax <- factor(d2$vaccine)
 
 #d2$serotype <- as.factor(d2$serotype)
 
 d2$assay[d2$assay=='IgG'] <- 'GMC'
+
 
 d2$dose_description[d2$dose_description=='1m post primary series child'] <- '1m post primary child' 
 d2$LogResponse= round(log(d2$value),2)
@@ -103,27 +102,17 @@ shinyApp(
     dashboardBody(
     
       fluidRow(
-        tabBox(
-          title = "",
-          id = "tabset1", height = "auto", width=12,
-          tabPanel(title="Concentration (GMC)",
-                   tabBox( title="", id='tabset1a',height='auto',width=12,
-                     tabPanel(title='ELISA',
-                       plotlyOutput("plot_gmc_elisa" )),
-                     tabPanel(title='ECL',
-                              plotlyOutput("plot_gmc_ecl")   ))
-                   ),
-          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
-          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F)),
-          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
-          
-        )),
+        uiOutput("tabbed_output")
+       ),
        
-        infoBox("Important information", "Data on immunogenicity alone cannot be used to infer 
+        infoBox("Important information", "This database is still under development. Please use with caution. Data on immunogenicity alone cannot be used to infer 
         differences in effectiveness between vaccines. 
         These data need to be combined with information on the protective concentration of antibodies required to protect against each serotype in 
         different populations for meaningful comparisons. Caution should be used when comparing
-                data from trials conducted by different sponsors, which might use different assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12)
+                data from trials conducted by different sponsors, which might use different assays", icon = icon("glyphicon glyphicon-exclamation-sign",lib ='glyphicon'), width=12),
+      
+    infoBox("Change log:", "Sept 30, 2022: Separately plot GMC calculated with ELISA from those measured with ELC, and separate out OPA results by sponsor, as suggested by a trial sponsor.", icon = icon("glyphicon glyphicon-edit",lib ='glyphicon'), width=12)
+      
         
         
 
@@ -177,7 +166,7 @@ shinyApp(
         inputId = 'dose_description',
         label = 'Doses received and timing:',
         choices = dose.options,
-        multiple = TRUE,
+        multiple = FALSE,
         selected = dose.default.select) #'1m post primary child' ,'1m post dose 1 adult'
       })
     
@@ -219,6 +208,47 @@ shinyApp(
                   unique(plot.ds$study_id), selected=unique(plot.ds$study_id), multiple=T)
     })
       
+    plotCount <- reactive({
+      req(input$sponsor)
+      length(input$sponsor)
+    })
+    stCount <- reactive({
+      req(input$st)
+      length(input$st)
+    })
+    
+    plotHeight <- reactive(150 * plotCount())   
+
+    plotWidthSt <- reactive(100 * stCount())   
+    plotHeightSt <- reactive(100 * stCount())   
+    
+    output$tabbed_output <-  renderUI({
+      if(input$age=='Child'){
+      tabBox(
+      title = "",
+      id = "tabset1", height = "auto", width=12,
+      tabPanel(title="Concentration (GMC)",
+               tabBox( title="", id='tabset1a',height='auto',width=12,
+                       tabPanel(title='ELISA',
+                                plotlyOutput("plot_gmc_elisa" )),
+                       tabPanel(title='ECL',
+                                plotlyOutput("plot_gmc_ecl")   ))
+      ),
+      tabPanel("Activity (OPA)", plotlyOutput("plot_opa",height = plotHeight())),
+      tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F, height=plotHeightSt())),
+      tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F, height=plotHeightSt()))
+      
+      )
+      }else{
+        tabBox(
+          title = "",
+          id = "tabset1", height = "auto", width=12,
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa")),
+          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F))
+        )
+    }
+    })
+    
     #add to UI: uiOutput("secondSelection")
     
     plot.ds.gmc_elisa <- reactive({
@@ -229,7 +259,7 @@ shinyApp(
             phase %in% input$phase   &
            serotype %in% input$st &
            assay=='GMC' & 
-          sponsor %in% input$sponsor & sponsor != "Merck Sharp & Dohme LLC")
+          sponsor %in% input$sponsor & sponsor != "Merck")
       })
     
     plot.ds.gmc <- reactive({
@@ -251,9 +281,19 @@ shinyApp(
                       phase %in% input$phase   &
                       serotype %in% input$st &
                       assay=='GMC' & 
-                      sponsor %in% input$sponsor & sponsor == "Merck Sharp & Dohme LLC")
+                      sponsor %in% input$sponsor & sponsor == "Merck")
     })
     
+    plot.ds.opa <- reactive({
+      
+      d2 %>% filter(vaccine %in% input$vax & 
+                      dose_description %in% input$dose_description & 
+                      standard_age_list %in% input$fine_age  &
+                      phase %in% input$phase   &
+                      serotype %in% input$st &
+                      assay=='OPA' & 
+                      sponsor %in% input$sponsor )
+    })
     output$plot_gmc_elisa = renderPlotly({
       validate(
         need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
@@ -266,7 +306,7 @@ shinyApp(
         
       }else{
         p1 <- plot.ds.gmc_elisa() %>% 
-          filter(sponsor != "Merck Sharp & Dohme LLC") %>%
+          filter(sponsor != "Merck") %>%
           ggplot( aes(x=vax, y=Response,  
                                           text=dose_descr_sponsor,
                                           #shape=sponsor,
@@ -303,7 +343,7 @@ shinyApp(
         
       }else{
         p1 <- plot.ds.gmc_ecl() %>% 
-          filter(sponsor== "Merck Sharp & Dohme LLC") %>%
+          filter(sponsor== "Merck") %>%
           ggplot( aes(x=vax, y=Response,  
                       text=dose_descr_sponsor,
                       #shape=sponsor,
@@ -318,7 +358,7 @@ shinyApp(
           ylab('GMC') +
           geom_hline(yintercept=(0.35), lty=2, col='gray')+
           # # ylim(0,NA) +
-          facet_grid(dose_description~serotype ) +
+          facet_grid( ~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
         
@@ -331,7 +371,7 @@ shinyApp(
 
     output$plot_opa = renderPlotly({
       validate(
-        need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+        need(nrow(plot.ds.opa()) > 0, message = FALSE)
       )
       if(is.null(input$dose_description)){
         p2 <- ggplot()
@@ -363,7 +403,7 @@ shinyApp(
           ylab('OPA GMT') +
             scale_y_continuous(
               trans = "log",labels=scaleFUN) +
-            facet_grid( dose_description~serotype ) +
+            facet_grid( sponsor~serotype ) +
           theme(axis.text.x=element_text(angle=90, hjust=1)) +
           theme(panel.spacing = unit(1.5, "lines"))
      ggplotly(p2)
