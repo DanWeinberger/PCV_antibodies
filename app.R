@@ -19,10 +19,13 @@ scaleFUN <- function(x) sprintf("%.2f", x)
 
 pcv7sts <- c('4','6B','9V','14','18C','19F','23F')
 #d1a <- read_excel("./Data/IgGGMCs2.xlsx")
-d1 <- read.csv("./Data/wisspar_export_CIs.csv")
+#d1 <- read.csv("./Data/wisspar_export_CIs.csv")
 
 #d1a <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
 # write.csv(d1a,'./Data/wisspar_export_CIs.csv')
+
+
+d1 <- read.csv("https://wisspar.com/export-options/data-export/?use_case=pcv_antibodies&default=true&outcome_overview_lower_limit=true&outcome_overview_upper_limit=true&clinical_trial_sponsor=true")
 
 names(d1) <- gsub('outcome_overview_','',names(d1))
 names(d1) <- gsub('study_eligibility_','',names(d1))
@@ -140,7 +143,7 @@ shinyApp(
     
     output$fine_age <- renderUI({
       if( input$age=='Adult'){
-        age.options<- unique(d2$standard_age_list)[grep('Adult',unique(d2$standard_age_list))]
+        age.options<- unique(d2$standard_age_list)[grepl('Adult',unique(d2$standard_age_list)) & !grepl('Child',unique(d2$standard_age_list)) ]
       }else{
         age.options<- unique(d2$standard_age_list)[grep('Child',unique(d2$standard_age_list))]
        }
@@ -149,7 +152,7 @@ shinyApp(
       label = 'Finer age categories:',
       choices = age.options,
       multiple = TRUE,
-      selected = age.options[1])
+      selected = age.options)
   })
    
     
