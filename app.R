@@ -449,12 +449,18 @@ shinyApp(
         plot.ds.c2.m <- reshape2::melt(plot.ds.c2, id.vars=c('dose_description','study_id','serotype','assay'))
         
         plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='GMC',]
-        
+       
+        if(nrow(plot.df)==0) {
+          print('Head-to-head not available')
+        }else{
+          
         plot.df$study_id <-  as.factor(plot.df$study_id)
         
         plot.df <- plot.df[!is.na(plot.df$value),]
         plot.df$Ratio <- round(plot.df$value,2)
         
+       
+          
         dat_text <- data.frame(
           label = c(rep('', length( unique(plot.df$serotype))-1) ,   paste0("Higher immunogenicity for ",  input$comp_vax)),
           serotype   = unique(plot.df$serotype)
@@ -465,6 +471,7 @@ shinyApp(
           serotype   = unique(plot.df$serotype)
         )
         
+     
                 p2 <- ggplotly(
           ggplot(plot.df, aes(y=study_id, x=Ratio, col=serotype ) ) +
             geom_point(aes(shape=dose_description)) +
@@ -483,14 +490,14 @@ shinyApp(
             theme(legend.position="none") +
             geom_text(
               data    = dat_text,
-              mapping = aes(x = 1.4, y = 1.5, label = label),
+              mapping = aes(x = 1.4, y = 0.5, label = label),
               hjust   = 0,
               vjust   = 0.5,
               col='gray'
             ) +
             geom_text(
               data    = dat_text2,
-              mapping = aes(x = 0.5, y = 1.5, label = label),
+              mapping = aes(x = 0.5, y = 0.5, label = label),
               hjust   = 1,
               vjust   = 0.5,
               col='gray'
@@ -500,6 +507,7 @@ shinyApp(
                   axis.text.y=element_blank(),
                   axis.ticks.y=element_blank())
         )
+          }
       }
       })
 
@@ -538,6 +546,11 @@ shinyApp(
       
       plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='OPA',]
       
+      
+      if(nrow(plot.df)==0) {
+        print('Head-to-head not available')
+      }else{
+        
       plot.df$study_id <-  as.factor(plot.df$study_id)
       
       plot.df <- plot.df[!is.na(plot.df$value),]
@@ -571,14 +584,14 @@ shinyApp(
           theme(legend.position="none") +
           geom_text(
             data    = dat_text,
-            mapping = aes(x = 1.4, y = 1.5, label = label),
+            mapping = aes(x = 1.4, y = 0.5, label = label),
             hjust   = 0,
             vjust   = 0.5,
             col='gray'
           ) +
           geom_text(
             data    = dat_text2,
-            mapping = aes(x = 0.5, y = 1.5, label = label),
+            mapping = aes(x = 0.5, y = 0.5, label = label),
             hjust   = 1,
             vjust   = 0.5,
             col='gray'
@@ -588,6 +601,7 @@ shinyApp(
                 axis.text.y=element_blank(),
                 axis.ticks.y=element_blank())
       )
+      }
     }
   })
   }
