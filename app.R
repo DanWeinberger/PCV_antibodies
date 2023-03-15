@@ -84,7 +84,7 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
-                                  unique(d2$vaccine), multiple=T, selected=c('PCV7',"PCV10 (Pneumosil)","PCV10 (Synflorix)", 'PCV13','PCV15','PCV20')),
+                                  unique(d2$vaccine), multiple=T, selected=c( 'PCV13','PCV20')),
                       selectInput("st", "Serotypes:",multiple=T,
                                   unique(d2$serotype),  selected=c('4','6A','14','19F')),
                     
@@ -181,7 +181,7 @@ shinyApp(
                        d2$standard_age_list %in% input$fine_age  &
                        d2$phase %in% input$phase)   ,]
         selectInput("ref_vax", "Reference vaccine:",
-                  input$vax, multiple=F, selected='PCV7')    
+                  input$vax, multiple=F, selected=input$vax[1])    
       })
     
     output$comp_vax <-renderUI({
@@ -190,7 +190,7 @@ shinyApp(
                        d2$standard_age_list %in% input$fine_age  &
                        d2$phase %in% input$phase)   ,]
       selectInput("comp_vax", "Comparator vaccine",
-                  input$vax, multiple=F, selected='PCV13')   
+                  input$vax, multiple=F, selected=input$vax[2])   
     })
 
     output$sponsor_name <-renderUI({
