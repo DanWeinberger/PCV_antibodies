@@ -381,19 +381,10 @@ shinyApp(
         p2
         #ggplotly(p2)
       }else{
-      plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$dose_description %in% input$dose_description & 
-                       d2$serotype %in% input$st &
-                       d2$study_id %in% input$study_id  &
-                       d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase & 
-                       d2$sponsor %in% input$sponsor) 
-                      
-                    ,]
+        plot.ds <- plot.ds.opa() %>%
+          mutate(study_id=as.factor(study_id))
       
-      plot.ds$study_id <- factor(plot.ds$study_id)
-      
-      p2 <-   ggplot(plot.ds[plot.ds$assay=='OPA',], aes(x=vax, 
+      p2 <-   ggplot(plot.ds, aes(x=vax, 
                                                          y=Response, 
                                                          group=study_age, 
                                                          text=dose_descr_sponsor,
@@ -425,16 +416,9 @@ shinyApp(
         ggplotly(p1)
         
       }else{
-      plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$dose_description %in% input$dose_description & 
-                       d2$serotype %in% input$st &
-                       d2$study_id %in% input$study_id  &
-                       d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase & 
-                       d2$sponsor %in% input$sponsor)
-                    ,]
-        plot.ds$study_id <- factor(plot.ds$study_id)
-      
+      plot.ds <- plot.ds.gmc() %>%
+        mutate(study_id=as.factor(study_id))
+
         plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
         
         vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
@@ -451,8 +435,10 @@ shinyApp(
         plot.df <- plot.ds.c2.m[plot.ds.c2.m$variable==input$comp_vax & plot.ds.c2.m$assay=='GMC',]
        
         if(nrow(plot.df)==0) {
-          print('Head-to-head not available')
-        }else{
+          p1 <- ggplot() +
+            ggtitle('Head-to-head not available')
+          ggplotly(p1)
+          }else{
           
         plot.df$study_id <-  as.factor(plot.df$study_id)
         
@@ -495,6 +481,7 @@ shinyApp(
               vjust   = 0.5,
               col='gray'
             ) +
+
             geom_text(
               data    = dat_text2,
               mapping = aes(x = 0.5, y = 0.5, label = label),
@@ -507,6 +494,11 @@ shinyApp(
                   axis.text.y=element_blank(),
                   axis.ticks.y=element_blank())
         )
+                
+                
+                
+                
+                
           }
       }
       })
@@ -520,16 +512,9 @@ shinyApp(
       ggplotly(p1)
       
     }else{
-      plot.ds <- d2[(d2$vaccine %in% input$vax & 
-                       d2$dose_description %in% input$dose_description & 
-                       d2$serotype %in% input$st &
-                       d2$study_id %in% input$study_id  &
-                       d2$standard_age_list %in% input$fine_age  &
-                       d2$phase %in% input$phase & 
-                       d2$sponsor %in% input$sponsor)
-                    ,]
-      plot.ds$study_id <- factor(plot.ds$study_id)
-      
+      plot.ds <- plot.ds.opa() %>%
+        mutate(study_id=as.factor(study_id))
+
       #plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
       plot.ds.c <- reshape2::dcast(plot.ds, dose_description+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
       
@@ -548,7 +533,9 @@ shinyApp(
       
       
       if(nrow(plot.df)==0) {
-        print('Head-to-head not available')
+        p1 <- ggplot() +
+          ggtitle('Head-to-head not available')
+        ggplotly(p1)
       }else{
         
       plot.df$study_id <-  as.factor(plot.df$study_id)
