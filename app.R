@@ -505,7 +505,7 @@ shinyApp(
 
   output$plot_ratio_opa = renderPlotly({
     validate(
-      need(nrow(plot.ds.gmc()) > 0, message = FALSE)
+      need(nrow(plot.ds.opa()) > 0, message = FALSE)
     )
     if(is.null(input$dose_description)){
       p1 <- ggplot()
@@ -522,7 +522,8 @@ shinyApp(
                     ,]
       plot.ds$study_id <- factor(plot.ds$study_id)
       
-      plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
+      #plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
+      plot.ds.c <- reshape2::dcast(plot.ds, dose_description+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
       
       vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
       
