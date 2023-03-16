@@ -10,7 +10,7 @@ library(grid)
 library(ggsci)
 library(shinydashboard)
 library(dplyr)
-library(shinyjqui)
+library(stringr)
 library(scales)
 
 scaleFUN <- function(x) sprintf("%.2f", x)
@@ -45,7 +45,12 @@ keep.vars <- c('vaccine','dose_number','study_id','location_continent',
 d2 <- d1 %>% 
  select(all_of(c(keep.vars,'value')))
 
-d2$vax <- factor(d2$vaccine)
+all.vax = unique(d2$vaccine)
+all.vax <- all.vax[all.vax!='']
+all.vax = str_sort(all.vax, numeric=T)
+
+d2$vax <- d2$vaccine
+
 
 #d2$serotype <- as.factor(d2$serotype)
 
@@ -58,8 +63,6 @@ d2$Response= round((d2$value),2)
 
 d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor,', ', d2$study_id)
 
-all.vax = unique(d2$vaccine)
-all.vax <- all.vax[all.vax!='']
 
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
@@ -90,7 +93,8 @@ shinyApp(
     dashboardSidebar( selectInput("vax", "Vaccine:",
                                   all.vax, multiple=T, selected=c( 'PCV13','PCV15')),
                       selectInput("st", "Serotypes:",multiple=T,
-                                  unique(d2$serotype),  selected=c('4','6A','14','19F')),
+                                  choices=    str_sort(unique(d2$serotype),numeric=T),  
+                                 selected=c('4','6A','14','19F')),
                     
                       selectizeInput("age", "Child or adults:",
                                 c('Child','Adult'), selected=c("Child")),
@@ -285,7 +289,8 @@ shinyApp(
             sponsor != "Merck" &
             study_id %in% input$study_id) %>%
          group_by(study_id, dose_description, location_continent, study_age, schedule, phase, serotype, assay) %>%
-        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        dplyr::mutate( Nvax = length(unique(vax)), 
+                       vax= factor(vax, levels=str_sort(unique(vax), numeric=T ) ) )  %>%
         filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
     
         })
@@ -301,7 +306,8 @@ shinyApp(
                       assay=='GMC' & 
                       sponsor %in% input$sponsor &
                       study_id %in% input$study_id) %>%
-        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        dplyr::mutate( Nvax = length(unique(vax)), 
+                       vax= factor(vax, levels=str_sort(unique(vax), numeric=T ) ) )  %>%
         filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
       
     })
@@ -317,7 +323,8 @@ shinyApp(
                       assay=='GMC' & 
                       sponsor %in% input$sponsor & sponsor == "Merck"&
                       study_id %in% input$study_id) %>%
-        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        dplyr::mutate( Nvax = length(unique(vax)), 
+                       vax= factor(vax, levels=str_sort(unique(vax), numeric=T ) )  )  %>%
         filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
       
       # filter(Nobs>=2)
@@ -334,7 +341,8 @@ shinyApp(
                       assay=='OPA' & 
                       sponsor %in% input$sponsor &
                       study_id %in% input$study_id) %>%
-        dplyr::mutate(Nvax = length(unique(vax)))  %>%
+        dplyr::mutate(Nvax = length(unique(vax)), 
+                      vax= factor(vax, levels=str_sort(unique(vax), numeric=T ) ) )  %>%
         filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
       
       # filter(Nobs>=2)
