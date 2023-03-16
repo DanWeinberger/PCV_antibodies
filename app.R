@@ -10,6 +10,7 @@ library(grid)
 library(ggsci)
 library(shinydashboard)
 library(dplyr)
+library(shinyjqui)
 library(scales)
 
 scaleFUN <- function(x) sprintf("%.2f", x)
@@ -57,6 +58,9 @@ d2$Response= round((d2$value),2)
 
 d2$dose_descr_sponsor <- paste(d2$dose_description, ', Sponsor:',d2$sponsor,', ', d2$study_id)
 
+all.vax = unique(d2$vaccine)
+all.vax <- all.vax[all.vax!='']
+
 pediatric.schedules <- unique(d2$schedule)[grep('child', unique(d2$schedule))]
 adult.schedules <- unique(d2$schedule)[grep('adult', unique(d2$schedule))]
 schedule.list <- list(adult.schedules,pediatric.schedules)
@@ -84,7 +88,7 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
-                                  unique(d2$vaccine), multiple=T, selected=c( 'PCV13','PCV20')),
+                                  all.vax, multiple=T, selected=c( 'PCV13','PCV15')),
                       selectInput("st", "Serotypes:",multiple=T,
                                   unique(d2$serotype),  selected=c('4','6A','14','19F')),
                     
@@ -93,7 +97,8 @@ shinyApp(
                       uiOutput('fine_age'),
                       uiOutput("schedule"),
                       uiOutput("dose_description"),
-                      
+                      checkboxInput("paired.obs.only", "Show paired observations only:",
+                                    value=T),
                       selectInput("phase", "Trial Phase:",
                                   unique(d2$phase), selected=unique(d2$phase), multiple=T),
                       uiOutput("ref_vax"),
@@ -138,7 +143,7 @@ shinyApp(
         label = 'Schedule:',
         choices = sched.options,
         multiple = TRUE,
-        selected = sched.options[1])
+        selected = sched.options)
     })
     
     output$fine_age <- renderUI({
@@ -226,22 +231,35 @@ shinyApp(
     plotHeightSt <- reactive(100 * stCount())   
     
     output$tabbed_output <-  renderUI({
-      if(input$age=='Child'){
+      if(input$age=='Child' & 'Merck' %in% input$sponsor ){
       tabBox(
       title = "",
       id = "tabset1", height = "auto", width=12,
       tabPanel(title="Concentration (GMC)",
                tabBox( title="", id='tabset1a',height='auto',width=12,
-                       tabPanel(title='ELISA',
-                                plotlyOutput("plot_gmc_elisa" )),
                        tabPanel(title='ECL',
-                                plotlyOutput("plot_gmc_ecl")   ))
+                                plotlyOutput("plot_gmc_ecl")   ),
+                       tabPanel(title='ELISA',
+                                plotlyOutput("plot_gmc_elisa" )))
       ),
       tabPanel("Activity (OPA)", plotlyOutput("plot_opa",height = plotHeight())),
       tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F, height=plotHeightSt())),
       tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F, height=plotHeightSt()))
       
       )
+      }else if (input$age=='Child' & !('Merck' %in% input$sponsor )){
+        tabBox(
+          title = "",
+          id = "tabset1", height = "auto", width=12,
+          tabPanel(title="Concentration (GMC)",
+                   tabBox( title="", id='tabset1a',height='auto',width=12,
+                             tabPanel(title='ELISA',
+                                    plotlyOutput("plot_gmc_elisa" )))
+          ),
+          tabPanel("Activity (OPA)", plotlyOutput("plot_opa",height = plotHeight())),
+          tabPanel("GMC Ratio", plotlyOutput("plot_ratio", inline=F, height=plotHeightSt())),
+          tabPanel("OPA Ratio", plotlyOutput("plot_ratio_opa", inline=F, height=plotHeightSt()))
+        )
       }else{
         tabBox(
           title = "",
@@ -252,18 +270,25 @@ shinyApp(
     }
     })
     
-    #add to UI: uiOutput("secondSelection")
+    ### Subset datasets for plotting###########################
     
     plot.ds.gmc_elisa <- reactive({
    
        d2 %>% filter(vaccine %in% input$vax & 
             dose_description %in% input$dose_description & 
             standard_age_list %in% input$fine_age  &
+              schedule %in% input$schedule &
             phase %in% input$phase   &
            serotype %in% input$st &
            assay=='GMC' & 
-          sponsor %in% input$sponsor & sponsor != "Merck")
-      })
+          sponsor %in% input$sponsor & 
+            sponsor != "Merck" &
+            study_id %in% input$study_id) %>%
+         group_by(study_id, dose_description, location_continent, study_age, schedule, phase, serotype, assay) %>%
+        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
+    
+        })
     
     plot.ds.gmc <- reactive({
       
@@ -271,9 +296,14 @@ shinyApp(
                       dose_description %in% input$dose_description & 
                       standard_age_list %in% input$fine_age  &
                       phase %in% input$phase   &
+                      schedule %in% input$schedule &
                       serotype %in% input$st &
                       assay=='GMC' & 
-                      sponsor %in% input$sponsor )
+                      sponsor %in% input$sponsor &
+                      study_id %in% input$study_id) %>%
+        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
+      
     })
     
     plot.ds.gmc_ecl <- reactive({
@@ -282,9 +312,15 @@ shinyApp(
                       dose_description %in% input$dose_description & 
                       standard_age_list %in% input$fine_age  &
                       phase %in% input$phase   &
+                      schedule %in% input$schedule &
                       serotype %in% input$st &
                       assay=='GMC' & 
-                      sponsor %in% input$sponsor & sponsor == "Merck")
+                      sponsor %in% input$sponsor & sponsor == "Merck"&
+                      study_id %in% input$study_id) %>%
+        dplyr::mutate( Nvax = length(unique(vax)))  %>%
+        filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
+      
+      # filter(Nobs>=2)
     })
     
     plot.ds.opa <- reactive({
@@ -294,9 +330,19 @@ shinyApp(
                       standard_age_list %in% input$fine_age  &
                       phase %in% input$phase   &
                       serotype %in% input$st &
+                      schedule %in% input$schedule &
                       assay=='OPA' & 
-                      sponsor %in% input$sponsor )
+                      sponsor %in% input$sponsor &
+                      study_id %in% input$study_id) %>%
+        dplyr::mutate(Nvax = length(unique(vax)))  %>%
+        filter(if(input$paired.obs.only) Nvax>=2 else TRUE ) #conditionally filter out singletons
+      
+      # filter(Nobs>=2)
     })
+    
+    ###PLOTS
+    
+    
     output$plot_gmc_elisa = renderPlotly({
       validate(
         need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
@@ -381,10 +427,10 @@ shinyApp(
         p2
         #ggplotly(p2)
       }else{
-        plot.ds <- plot.ds.opa() %>%
+        plot.ds.opa2 <- plot.ds.opa() %>%
           mutate(study_id=as.factor(study_id))
       
-      p2 <-   ggplot(plot.ds, aes(x=vax, 
+      p2 <-   ggplot(plot.ds.opa2, aes(x=vax, 
                                                          y=Response, 
                                                          group=study_age, 
                                                          text=dose_descr_sponsor,
@@ -416,10 +462,10 @@ shinyApp(
         ggplotly(p1)
         
       }else{
-      plot.ds <- plot.ds.gmc() %>%
+      plot.ds3 <- plot.ds.gmc() %>%
         mutate(study_id=as.factor(study_id))
 
-        plot.ds.c <- reshape2::dcast(plot.ds, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
+        plot.ds.c <- reshape2::dcast(plot.ds3, dose_description+schedule+study_id+serotype +assay~vaccine, value.var='value', fun.aggregate = mean)
         
         vax.dat <- plot.ds.c[,names(plot.ds.c) %in% as.character(unique(d2$vaccine)), drop=F]
         
