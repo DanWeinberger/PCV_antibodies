@@ -352,14 +352,15 @@ shinyApp(
     
     
     output$plot_gmc_elisa = renderPlotly({
-      validate(
-        need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
-      )
-      if(is.null(input$dose_description)){
+      # validate(
+      #   need(nrow(plot.ds.gmc_elisa()) > 0, message = FALSE)
+      # )
+      if(nrow(plot.ds.gmc_elisa()) == 0){
         
-        p1 <- ggplot()
-        p1
-        #ggplotly(p1)
+        p1 <- ggplot()+
+          ggtitle('ELISA not performed or available for the selected vaccines')
+        
+        ggplotly(p1)
         
       }else{
         p1 <- plot.ds.gmc_elisa() %>% 
@@ -389,14 +390,14 @@ shinyApp(
     
     #ECL
     output$plot_gmc_ecl= renderPlotly({
-      validate(
-        need(nrow(plot.ds.gmc_ecl()) > 0, message = FALSE)
-      )
-      if(is.null(input$dose_description)){
+      # validate(
+      #   need(nrow(plot.ds.gmc_ecl()) > 0, message = FALSE)
+      # )
+      if(nrow(plot.ds.gmc_ecl()) == 0){
         
-        p1 <- ggplot()
-        p1
-        #ggplotly(p1)
+        p1 <- ggplot() +
+          ggtitle('ECL not performed or available for the selected vaccines')
+        ggplotly(p1)
         
       }else{
         p1 <- plot.ds.gmc_ecl() %>% 
@@ -492,6 +493,7 @@ shinyApp(
           p1 <- ggplot() +
             ggtitle('Head-to-head not available')
           ggplotly(p1)
+          
           }else{
           
         plot.df$study_id <-  as.factor(plot.df$study_id)
