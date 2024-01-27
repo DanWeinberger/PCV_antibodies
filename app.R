@@ -43,7 +43,8 @@ keep.vars <- c('vaccine','dose_number','study_id','location_continent',
 
 
 d2 <- d1 %>% 
- select(all_of(c(keep.vars,'value')))
+ select(all_of(c(keep.vars,'value'))) %>%
+  mutate(vaccine= if_else(vaccine=='PCV13',"PCV13 (Pfizer)", vaccine))
 
 all.vax = unique(d2$vaccine)
 all.vax <- all.vax[all.vax!='']
@@ -91,7 +92,7 @@ shinyApp(
   ui = dashboardPage(
     dashboardHeader(title = "Comparison of Immmunogenicity of PCVs",titleWidth=500),
     dashboardSidebar( selectInput("vax", "Vaccine:",
-                                  all.vax, multiple=T, selected=c( 'PCV13','PCV15')),
+                                  all.vax, multiple=T, selected=c( "PCV13 (Pfizer)",'PCV15')),
                       selectInput("st", "Serotypes:",multiple=T,
                                   choices=    str_sort(unique(d2$serotype),numeric=T),  
                                  selected=c('4','6A','14','19F')),
